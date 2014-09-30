@@ -1,36 +1,39 @@
-test_puller <- function(sam_file, gff_file, gene_of_interest) {
+DPP <- function(sam_input, gff_file, gene_of_interest) {
         
         
-        #Outpus the peaks matching a certain gene. NM for gene of interest must be in quotes (' ')
+        ###Outputs the reads that fall anywhere inside peaks matching a given gene. Gene selected by NM_ for gene of interest, which must be in quotes (' ')###
         
+        #Reads in the gff file
+        gff_peaks <- gff_file  #read.table (gff_file , sep = "\t", header = FALSE)
         
-        gff_peaks <- read.table (gff_file , sep = "\t", header = FALSE)
+        #Generates a sequence of numbers to number the gff peaks
         
         numbers <- seq(1:length (gff_peaks [ ,1]))
-        #Number the gff peaks
+        
+        #Numbers the gff peaks
         numbered_gff <- cbind(gff_peaks, numbers)
         
-        # Search through for gene of interest.
+        # Searches through gff file for specified gene of interest
         
         numbered_gff[grep(gene_of_interest, numbered_gff[,9]), "gene"] <- gene_of_interest
         
         found_gene <- subset(numbered_gff, numbered_gff["gene"] == gene_of_interest)
         
+        #Outputs only peaks matching given gene
         output_gff <-as.data.frame(found_gene)
         
         
                 
         #read in your .sam file
         
-        #sam_file <- read.table (sam_file, sep = "", header = FALSE, fill = TRUE)
+        sam <-sam_input    #read.table (sam_file, sep = "", header = FALSE, fill = TRUE)
         
+        #Remove all reads that don't contain a poly A flag
+        a_flag_sam_file <- subset( sam, sam [,21] != "")
                 
-        #remove all reads that don't have a ploy A flag
-        
-        a_flag_sam_file <- subset(sam_file, sam_file [,21]  != "")
         
         #bind an extra col of zeroes to sam file for later
-        zero_sam_file<- cbind (a_flag_sam_file, c(0))
+        zero_sam_file<- cbind (sam, c(0))
         
         #pull out reads
        
@@ -53,15 +56,19 @@ test_puller <- function(sam_file, gff_file, gene_of_interest) {
                 }  
         }
         }
-        #Take from the output only lines assigned a peak. 
+        # A file with annotations in c24 where reads have been matched to peaks
+        output <- zero_sam_file
+        
+        #Take from the output only lines assigned a peak 
         reads <- subset (output, output[ ,24]!= 0)
         
         #Pull the AN flag numbers
         
-        out <- as.numeric(gsub("AN:i:", "", reads [,21]))
+        out <- suppressWarnings(as.numeric(gsub("AN:i:", "", reads [,21])))
+        out <- out[!is.na(out)]
         
-        
-        return  (reads)
+        #Returns an ordered list of poly A residues for specified gene 
+        return  sort((out))
         
         
 }
