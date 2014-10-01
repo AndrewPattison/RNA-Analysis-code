@@ -33,7 +33,7 @@ DPP <- function(sam_input, gff_file, gene_of_interest) {
                 
         
         #bind an extra col of zeroes to sam file for later
-        zero_sam_file<- cbind (sam, c(0))
+        zero_sam_file<- cbind (a_flag_sam_file, c(0))
         
         #pull out reads
        
@@ -43,12 +43,12 @@ DPP <- function(sam_input, gff_file, gene_of_interest) {
                 
                 read <- zero_sam_file[I,4]
                 
-                if (last_peak[,4] <= read &  last_peak[,5] >= read){
+                if (last_peak[,4] -100 <= read &  last_peak[,5] >= read){
                         zero_sam_file[I,24] <- last_peak[10]
                 }
                                 
                 else{
-                logv = (output_gff[,4] <= read &  output_gff[,5] >= read)
+                logv = (output_gff[,4] -100 <= read &  output_gff[,5] >= read)
                 if (length(output_gff [logv,10]) ==1){
                         peak_no <- as.numeric(output_gff [logv,10])
                         last_peak <- output_gff [logv,] 
@@ -68,7 +68,7 @@ DPP <- function(sam_input, gff_file, gene_of_interest) {
         out <- out[!is.na(out)]
         
         #Returns an ordered list of poly A residues for specified gene 
-        return  sort((out))
+        return  (sort(out))
         
         
 }
