@@ -20,11 +20,14 @@ survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM){
         l2 <- processed_bam_files[[2]]
         
         
+        vodka_test <<- ks.test(l1, l2, alternative="two.sided")
+        
         # Make a reverse cumulative distribuition plot of the poly A reads
         r<- range(l1,l2)
         en <- ecdf(l1)
         eg <- ecdf(l2)
         
+
         ry <- max(length(l1),length(l2))
         
         curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(gene_of_interest_NM))
@@ -80,7 +83,7 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         for (line in 1:nrow(minus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(minus_reads [,'chr'],IRanges(
-                minus_reads[,'peak start'], minus_reads[,'peak end'] )))
+                minus_reads[,'peak start'], minus_reads[,'peak end'] +5 )))
         
         result <- scanBam( bam_file , param=param, isMinusStrand = TRUE)
         no_of_as1 <- result[[1]][[5]][[1]]
