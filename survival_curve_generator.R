@@ -20,7 +20,7 @@ survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM){
         l2 <- processed_bam_files[[2]]
         
         
-        vodka_test <<- ks.test(l1, l2, alternative="two.sided")
+        #vodka_test <<- ks.test(l1, l2, alternative="two.sided")
         
         # Make a reverse cumulative distribuition plot of the poly A reads
         r<- range(l1,l2)
@@ -69,12 +69,13 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         goi <- gff_gene_finder(gff_file, gene_of_interst_NM)
 
         colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information')
-
-
+        
+        # put goi in global for plotting title
+        goi<<- goi
         # Split the gene of interest by orientation
         split_goi <- split(goi, goi[,'orientation'],drop = TRUE)
 
-        # Pull the poly A reads for strands in each oreintation
+        # Pull the poly A reads for strands in each oreintation from the gff file
         plus_reads <- split_goi[['+']]
         minus_reads <- split_goi[['-']]
 
@@ -83,11 +84,12 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         for (line in 1:nrow(minus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(minus_reads [,'chr'],IRanges(
-                minus_reads[,'peak start'], minus_reads[,'peak end'] +5 )))
+                minus_reads[line,'peak start'], minus_reads[line,'peak end'] +5 )))
         
-        result <- scanBam( bam_file , param=param, isMinusStrand = TRUE)
-        no_of_as1 <- result[[1]][[5]][[1]]
+        result1 <<- scanBam ( bam_file , param=param, isMinusStrand = TRUE)
+        no_of_as1 <- result1[[1]][[5]][[1]]
         
+        #add succesive peaks together
         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
         }
         }
@@ -96,11 +98,21 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         for (line in 1:nrow(plus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(plus_reads [,'chr'],IRanges(
-                plus_reads[,'peak start']-100, plus_reads[,'peak end'] )))
+                plus_reads[line,'peak start'] -200, plus_reads[line,'peak end']+5 )))
         
-        result <- scanBam( bam_file , param=param, isMinusStrand = FALSE)
-        no_of_as2 <- result[[1]][[5]][[1]]
+        result2 <<- scanBam( bam_file , param=param, isMinusStrand = FALSE)
         
+        result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
+        df <<- as.data.frame(result2)
+        
+        
+        
+        my.data.frame <<- subset(df , df[,5] >=  plus_reads[line,'peak start'] -5| dfgit pul[,5] <= plus_reads[line,'peak end']+5)
+        
+        
+        no_of_as2 <- my.data.frame[,5]
+        
+        #add succesive peaks together
         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
         
         
