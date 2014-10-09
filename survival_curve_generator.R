@@ -71,51 +71,53 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information')
         
         # put goi in global for plotting title
-        goi<<- goi
+        goi<- goi
         # Split the gene of interest by orientation
         split_goi <- split(goi, goi[,'orientation'],drop = TRUE)
 
         # Pull the poly A reads for strands in each oreintation from the gff file
         plus_reads <- split_goi[['+']]
         minus_reads <- split_goi[['-']]
-
+        
+        
+        reads_minus <- list()
         all_poly_a_tails_minus<- numeric()
-        if (length(minus_reads)>1){
+        if (length(minus_reads)>=1){
         for (line in 1:nrow(minus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(minus_reads [,'chr'],IRanges(
                 minus_reads[line,'peak start'], minus_reads[line,'peak end'] +5 )))
         
-        result1 <<- scanBam ( bam_file , param=param, isMinusStrand = TRUE)
+        result1 <- scanBam ( bam_file , param=param, isMinusStrand = TRUE)
         no_of_as1 <- result1[[1]][[5]][[1]]
+        
+        reads_minus <- c(reads_minus,length(result1))
         
         #add succesive peaks together
         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
         }
         }
+        plus_read_count <- list()
         all_poly_a_tails_plus <- numeric()
-        if (length(plus_reads)>1){
+        if (length(plus_reads)>=1){
         for (line in 1:nrow(plus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(plus_reads [,'chr'],IRanges(
                 plus_reads[line,'peak start'] -200, plus_reads[line,'peak end']+5 )))
         
-        result2 <<- scanBam( bam_file , param=param, isMinusStrand = FALSE)
+        result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
         
         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
-        df <<- as.data.frame(result2)
+        df <- as.data.frame(result2)
         
-        
-        
-        my.data.frame <<- subset(df , df[,5] >=  plus_reads[line,'peak start'] -5| dfgit pul[,5] <= plus_reads[line,'peak end']+5)
-        
-        
+        my.data.frame <- subset(df , df[,3] >= plus_reads[line,'peak start'] -5| df[,3] <= plus_reads[line,'peak end']+5)
         no_of_as2 <- my.data.frame[,5]
-        
         #add succesive peaks together
         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
         
         
+        
+                
 }
 }
 # Combine the pulled reads back together
