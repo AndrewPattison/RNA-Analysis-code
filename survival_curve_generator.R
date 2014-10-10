@@ -10,10 +10,16 @@ survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM){
         
         gff_file <- read.table (gff , sep = "\t", header = FALSE)
         
+        print (c('Order of bam file processing', bam_list))
+        
+        
+        # Get normalisation factors
+        all_read_counts <- lapply(bam_list, countBam)
+        all_read_counts_combined <- rbind(all_read_counts[[1]], all_read_counts[[2]])
         
         # Pull the poly A reads from each bam file
-        processed_bam_files <- lapply(bam_list ,poly_A_puller, gff_file, gene_of_interest_NM)
-       
+        processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, gene_of_interest_NM)
+        
         
         # Separate the pulled reads for plotting
         l1 <- processed_bam_files[[1]]
@@ -80,7 +86,7 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         minus_reads <- split_goi[['-']]
         
         
-        reads_minus <- list()
+        minus_read_count <- list()
         all_poly_a_tails_minus<- numeric()
         if (length(minus_reads)>=1){
         for (line in 1:nrow(minus_reads)){
@@ -91,15 +97,19 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         result1 <- scanBam ( bam_file , param=param, isMinusStrand = TRUE)
         no_of_as1 <- result1[[1]][[5]][[1]]
         
-        reads_minus <- c(reads_minus,length(result1))
+        reads_in_peak_neg <- length (no_of_as1)
+        minus_read_count <- c(minus_read_count, reads_in_peak_neg)
+        print (c('number of reverse strand reads per peak', line))
+        print (reads_in_peak_neg)
         
         #add succesive peaks together
         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
         }
         }
+        
         plus_read_count <- list()
         all_poly_a_tails_plus <- numeric()
-        if (length(plus_reads)>=1){
+        if (ncol(plus_reads)>=1){
         for (line in 1:nrow(plus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(plus_reads [,'chr'],IRanges(
@@ -115,13 +125,18 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         #add succesive peaks together
         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
         
+        reads_in_peak_pos <- length (no_of_as2)
+        plus_read_count <- c(plus_read_count,reads_in_peak_pos)
+        print (c('number of forward strand reads per peak',line)) 
+        print (reads_in_peak_pos)
         
-        
-                
 }
+
 }
 # Combine the pulled reads back together
 all_poly_a_tails<- sort(c(all_poly_a_tails_plus, all_poly_a_tails_minus))
+print('next condition')
+
 
 return (all_poly_a_tails)
 
