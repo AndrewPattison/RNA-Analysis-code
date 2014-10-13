@@ -3,7 +3,7 @@
 ### a survival curve of poly A tail distribution over the two samples based on peaks called in the gff file
 
 
-survival_curve_generator_by_name <- function( bam_list, gff, Name=FALSE, housekeeping_gene=FALSE,peak =FALSE){
+survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE){
         library(Rsamtools)   
         
         #  Read the gff file
@@ -15,7 +15,7 @@ survival_curve_generator_by_name <- function( bam_list, gff, Name=FALSE, houseke
         
         
         # Pull the poly A reads from each bam file
-        processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, Name, peak)
+        processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, name, peak)
         
         
         # Separate the pulled reads for plotting
@@ -40,14 +40,14 @@ survival_curve_generator_by_name <- function( bam_list, gff, Name=FALSE, houseke
         if(peak!=FALSE){
         curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= c('peak',paste(peak)))}
         else{
-                curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(Name))}
+                curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name))}
         curve((1-eg(x))*100, from=r[1], to=r[2], col="blue", add=TRUE)
         
         legend("topright", legend = c(paste(bam_list[[1]]), paste(bam_list[[2]])), fill = c("red", "blue"),text.width=40)
         
         
 }
-poly_A_puller<- function(bam_file, gff, Name, peak){
+poly_A_puller<- function(bam_file, gff, name, peak){
         
         gff_peak_finder <- function(gff_file, peak) {
                 
@@ -75,7 +75,7 @@ poly_A_puller<- function(bam_file, gff, Name, peak){
         }
         
         
-        gff_name_finder <- function(gff, Name) {
+        gff_name_finder <- function(gff, name) {
                 
                 
                 #Outpus the peaks matching a certain gene. NM for gene of interest must be in quotes (' ')
@@ -89,9 +89,9 @@ poly_A_puller<- function(bam_file, gff, Name, peak){
                 
                 # Search through for gene of interest.
                 
-                numbered_gff[grep(Name, numbered_gff[,9]), "Name"] <- Name
+                numbered_gff[grep(name, numbered_gff[,9]), "name"] <- name
                 
-                found_gene <- subset(numbered_gff, numbered_gff["Name"] == Name)
+                found_gene <- subset(numbered_gff, numbered_gff["name"] == name)
                 
                 output <-as.data.frame(found_gene)
                 
@@ -108,11 +108,12 @@ poly_A_puller<- function(bam_file, gff, Name, peak){
                 goi<- gff_peak_finder(gff, peak)
         }
         else{
-                goi <- gff_name_finder(gff, Name) 
+                goi <- gff_name_finder(gff, name) 
         }
         
         colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers', 'name')
-        
+        cat('peaks, used: \n')
+        print(goi)
         # Split the gene of interest by orientation
         split_goi <- split(goi, goi[,'orientation'],drop = TRUE)
         
@@ -156,8 +157,10 @@ poly_A_puller<- function(bam_file, gff, Name, peak){
                         
                         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
                         df <- as.data.frame(result2)
-                        no_of_as2 <- result2[[1]][[5]][[1]]
-                       
+                        df <- as.data.frame(result2)
+                        my.data.frame <- subset(df , df[,3] >= plus_reads[line,'peak start'] -5| df[,3] <= plus_reads[line,'peak end']+5)
+                        no_of_as2 <- my.data.frame[,5]
+                                               
                         #add succesive peaks together
                         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
                         
@@ -171,7 +174,7 @@ poly_A_puller<- function(bam_file, gff, Name, peak){
         }
         # Combine the pulled reads back together
         all_poly_a_tails<- sort(c(all_poly_a_tails_plus, all_poly_a_tails_minus))
-        print('next condition')
+        cat('next condition\n')
         
         
         return (all_poly_a_tails)
