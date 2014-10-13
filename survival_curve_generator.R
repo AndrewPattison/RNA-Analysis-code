@@ -3,20 +3,16 @@
 ### a survival curve of poly A tail distribution over the two samples based on peaks called in the gff file
 
 
-survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM){
-        library(Rsamtools)
-        
+survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM, housekeeping_gene=FALSE){
+        library(Rsamtools)   
+                  
         #  Read the gff file
         
         gff_file <- read.table (gff , sep = "\t", header = FALSE)
         
         print (c('Order of bam file processing', bam_list))
         
-        
-        # Get normalisation factors
-        all_read_counts <- lapply(bam_list, countBam)
-        all_read_counts_combined <- rbind(all_read_counts[[1]], all_read_counts[[2]])
-        
+               
         # Pull the poly A reads from each bam file
         processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, gene_of_interest_NM)
         
@@ -25,8 +21,13 @@ survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM){
         l1 <- processed_bam_files[[1]]
         l2 <- processed_bam_files[[2]]
         
+        if (housekeeping_gene == TRUE) {
+        difference <<- length(l1)/length(l2)
+        print (toString(c(paste(bam_list[[2]]),'multiplied by',difference,'is equivalent to', paste(bam_list[[1]]))))
+        }
+        vodka_test <- ks.test(l1,l2, alternative="two.sided")
+        print (vodka_test)
         
-        #vodka_test <<- ks.test(l1, l2, alternative="two.sided")
         
         # Make a reverse cumulative distribuition plot of the poly A reads
         r<- range(l1,l2)
