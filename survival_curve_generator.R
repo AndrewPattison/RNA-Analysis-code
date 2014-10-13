@@ -3,7 +3,7 @@
 ### a survival curve of poly A tail distribution over the two samples based on peaks called in the gff file
 
 
-survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM, housekeeping_gene=FALSE){
+survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM, housekeeping_gene=FALSE, title= NULL){
         library(Rsamtools)   
                   
         #  Read the gff file
@@ -37,10 +37,10 @@ survival_curve_generator <- function(bam_list, gff, gene_of_interest_NM, houseke
 
         ry <- max(length(l1),length(l2))
         
-        curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(gene_of_interest_NM))
+        curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(title))
         curve((1-eg(x))*100, from=r[1], to=r[2], col="blue", add=TRUE)
         
-        legend("topright", legend = c(paste(bam_list[[1]]), paste(bam_list[[2]])), fill = c("red", "blue"))
+        legend("topright", legend = c(paste(bam_list[[1]]), paste(bam_list[[2]])), fill = c("red", "blue"),text.width=40)
         
         
 }
@@ -74,11 +74,10 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         # Pull your gene of interest from the gff file. 
 
         goi <- gff_gene_finder(gff_file, gene_of_interst_NM)
+        
 
         colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information')
         
-        # put goi in global for plotting title
-        goi<- goi
         # Split the gene of interest by orientation
         split_goi <- split(goi, goi[,'orientation'],drop = TRUE)
 
@@ -105,12 +104,14 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         
         #add succesive peaks together
         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
-        }
-        }
         
+        }
+        }
+        # The number of poly A values
         plus_read_count <- list()
+        # The poly_A flag values 
         all_poly_a_tails_plus <- numeric()
-        if (ncol(plus_reads)>=1){
+        if (length(plus_reads)>=1){
         for (line in 1:nrow(plus_reads)){
         
         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(plus_reads [,'chr'],IRanges(
@@ -121,8 +122,8 @@ poly_A_puller<- function(bam_file,gff_file, gene_of_interst_NM){
         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
         df <- as.data.frame(result2)
         
-        my.data.frame <- subset(df , df[,3] >= plus_reads[line,'peak start'] -5| df[,3] <= plus_reads[line,'peak end']+5)
-        no_of_as2 <- my.data.frame[,5]
+        no_of_as2 <- result2[[1]][[5]][[1]]
+       
         #add succesive peaks together
         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
         
