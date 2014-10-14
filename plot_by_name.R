@@ -40,7 +40,7 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
         if(peak!=FALSE){
         curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= c('peak',paste(peak)))}
         else{
-                curve((1-en(x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name))}
+                curve((1-en(x))*100,  from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name))}
         curve((1-eg(x))*100, from=r[1], to=r[2], col="blue", add=TRUE)
         
         legend("topright", legend = c(paste(bam_list[[1]]), paste(bam_list[[2]])), fill = c("red", "blue"),text.width=40)
@@ -63,9 +63,9 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 
                 # Search through for gene of interest.
                 
-                numbered_gff[grep(peak, numbered_gff[,10]), "peak"] <- peak
                 
-                found_gene <- subset(numbered_gff, numbered_gff["peak"] == peak)
+                
+                found_gene <- subset(numbered_gff, numbered_gff[,10] == peak)
                 
                 output <-as.data.frame(found_gene)
                 
@@ -89,7 +89,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 
                 # Search through for gene of interest.
                 
-                numbered_gff[grep(name, numbered_gff[,9]), "name"] <- name
+                numbered_gff[grep(name, numbered_gff[,9], ignore.case=TRUE), "name"] <- name
                 
                 found_gene <- subset(numbered_gff, numbered_gff["name"] == name)
                 
@@ -106,12 +106,14 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                
         if (peak != FALSE){
                 goi<- gff_peak_finder(gff, peak)
+                colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers')
         }
         else{
                 goi <- gff_name_finder(gff, name) 
+                colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers','name')
         }
         
-        colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers', 'name')
+        
         cat('peaks, used: \n')
         print(goi)
         # Split the gene of interest by orientation
@@ -151,13 +153,14 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 for (line in 1:nrow(plus_reads)){
                         
                         param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(plus_reads [,'chr'],IRanges(
-                                plus_reads[line,'peak start'] -200, plus_reads[line,'peak end']+5 )))
+                                plus_reads[line,'peak start'] -305, plus_reads[line,'peak end']+305 )))
                         
                         result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
                         
                         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
                         df <- as.data.frame(result2)
-                        df <- as.data.frame(result2)
+                        
+                        #second set of precessig to account for 5'read ends at the ead of a peak
                         my.data.frame <- subset(df , df[,3] >= plus_reads[line,'peak start'] -5| df[,3] <= plus_reads[line,'peak end']+5)
                         no_of_as2 <- my.data.frame[,5]
                                                
