@@ -5,8 +5,13 @@
 
 
 survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE){
-        library(Rsamtools)   
+        library(Rsamtools)
         
+        if (name != FALSE){
+                fileConn <- file(paste(name,'.txt',sep = ""))
+                writeLines('', fileConn)
+                close(fileConn)
+        }
         #  Read the gff file
         
         gff_file <- read.table (gff, sep = "\t", header = FALSE)
@@ -63,7 +68,7 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
 poly_A_puller<- function(bam_file, gff, name, peak){
         
         gff_peak_finder <- function(gff_file, peak) {
-                
+                       
                 
                 #Outpus the peaks matching a certain gene. NM for gene of interest must be in quotes (' ')
                 
@@ -135,7 +140,8 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         # Pull the poly A reads for strands in each oreintation from the gff file
         plus_reads <- split_goi[['+']]
         minus_reads <- split_goi[['-']]
-        
+        file <- toString(paste(name,'.txt',sep = ""))
+        write(bam_file, file ,append=TRUE)
         
       
         all_poly_a_tails_minus<- numeric()
@@ -161,6 +167,12 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         
                         #add succesive peaks together
                         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
+                        
+                        file <- toString(paste(name,'.txt',sep = ""))
+                        write(c('Reverse strand peak',line), file ,append=TRUE)
+                        write(toString(peak),file=file,append=TRUE)
+                        write('Reads:', file ,append=TRUE)
+                        write(reads_in_peak_neg, file ,append=TRUE)
                         last_line <- peak
                 }
         }
@@ -168,8 +180,9 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         
         # The poly_A flag values 
         all_poly_a_tails_plus <- numeric()
-        all_poly_a_tails_plus <- numeric()
+        # Give last line a default value 
         last_line <- as.data.frame(data.frame(matrix(1, nrow=1,ncol=10))) 
+        # Last line is set to the last peak. If it overlaps another peak it will make its end the new peak's start. 
         if (length(plus_reads)>=1){
                 for (line in 1:nrow(plus_reads)){
                         
@@ -185,12 +198,11 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                                 peak[,'peak start'] -305, peak[,'peak end']+305 )))
                         
                         result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
-                        
                         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
                         df <- as.data.frame(result2)
                         
                         #second set of precessig to account for 5'read ends at the ead of a peak
-                        my.data.frame <-  subset(df, df[,3] >= peak[,'peak start'] -5 & df[,3] <= peak[,'peak end']+5)
+                        my.data.frame <-  subset(df, df[,3] >= (peak[,'peak start'] -5) & df[,3] <= (peak[,'peak end']+5))
                         
                         no_of_as2 <- my.data.frame[,5]
                         
@@ -201,7 +213,18 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                        
                         print (c('number of forward strand reads per peak',line)) 
                         print (reads_in_peak_pos)
+                        
+                        
+                        file <- toString(paste(name,'.txt',sep = ""))
+                        write(c('Forward strand peak',line), file ,append=TRUE)
+                        write(toString(peak),file=file,append=TRUE)
+                        write('Reads:', file ,append=TRUE)
+                        write(reads_in_peak_pos, file ,append=TRUE)
+                        
+                        
                         last_line <- peak
+                        
+                        
                 }
                 
         }
