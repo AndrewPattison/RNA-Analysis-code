@@ -1,4 +1,5 @@
 
+
 ### This R script takes a list of two bam files, a gff file and an NM number for a gene of interest and returns
 ### a survival curve of poly A tail distribution over the two samples based on peaks called in the gff file
 
@@ -26,34 +27,34 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
                 difference <<- length(l1)/length(l2)
                 print (toString(c(paste(bam_list[[2]]),'multiplied by',difference,'is equivalent to', paste(bam_list[[1]]))))
         }
-        vodka_test <- ks.test(l1,l2, alternative="two.sided")
-        print (vodka_test)
+        #vodka_test <- ks.test(l1,l2, alternative="two.sided")
+        #print (vodka_test)
         
         
         # Make a reverse cumulative distribuition plot of the poly A reads
         elis <- lapply (processed_bam_files, ecdf)
-        the_rest <- elis[c(2,3,4,5,6)]
+        the_rest <- elis[c(2:length(bam_list))]
         ry <- lapply(processed_bam_files,max)
         r <- range(l1,l2)
         
         if(peak!=FALSE){
-        curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= c('peak',paste(peak)))
+                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= c('peak',paste(peak)))
         }
         else{
                 curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name))   
-        
-        }
-                
-                
-                peak_plot <- function(ecdf_value, colour,r=r ){
-        
-              curve((1-ecdf_value(x))*100,  from=r[1], to=r[2], col=colour, xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', add=TRUE)
-                
                 
         }
         
-        collist <- c ("blue","green","orange", "yellow","purple")
-       
+        
+        peak_plot <- function(ecdf_value, collist,r=r ){
+                
+                curve((1-ecdf_value(x))*100,  from=r[1], to=r[2], col=collist, xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', add=TRUE)
+                
+                
+        }
+        
+        collist <- list("blue","green","orange", "yellow","purple")
+        collist <- collist[c(1:length(bam_list)-1)]
         mapply (peak_plot, the_rest, collist, MoreArgs= list(r=r))
         legend("topright", legend = paste(bam_list), fill = c("red","blue","green","orange", "yellow","purple"),text.width=40)
         
@@ -126,7 +127,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         }
         
         
-        cat('peaks, used: \n')
+        cat('peaks used: \n')
         print(goi)
         # Split the gene of interest by orientation
         split_goi <- split(goi, goi[,'orientation'],drop = TRUE)
@@ -136,36 +137,52 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         minus_reads <- split_goi[['-']]
         
         
-        minus_read_count <- list()
+      
         all_poly_a_tails_minus<- numeric()
+        last_line <- as.data.frame(data.frame(matrix(1, nrow=1,ncol=10))) 
         if (length(minus_reads)>=1){
                 for (line in 1:nrow(minus_reads)){
+                        peak <- minus_reads [line,]
+                        # If the start of a line in less than the end of a previous read, move the start to the end of the previous read. 
+                        if(peak[,4] <= last_line[,5]){
+                                peak[,4] <-  last_line[,5]       
+                        }
                         
-                        param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(minus_reads [,'chr'],IRanges(
-                                minus_reads[line,'peak start'], minus_reads[line,'peak end'] +5 )))
+                        param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(peak [,'chr'],IRanges(
+                                peak[,'peak start'], peak[,'peak end'] +5 )))
                         
                         result1 <- scanBam ( bam_file , param=param, isMinusStrand = TRUE)
                         no_of_as1 <- result1[[1]][[5]][[1]]
                         
                         reads_in_peak_neg <- length (no_of_as1)
-                        minus_read_count <- c(minus_read_count, reads_in_peak_neg)
+                        
                         print (c('number of reverse strand reads per peak', line))
                         print (reads_in_peak_neg)
                         
                         #add succesive peaks together
                         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
-                        
+                        last_line <- peak
                 }
         }
-        # The number of poly A values
-        plus_read_count <- list()
+        
+        
         # The poly_A flag values 
         all_poly_a_tails_plus <- numeric()
+        all_poly_a_tails_plus <- numeric()
+        last_line <- as.data.frame(data.frame(matrix(1, nrow=1,ncol=10))) 
         if (length(plus_reads)>=1){
                 for (line in 1:nrow(plus_reads)){
                         
-                        param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(plus_reads [,'chr'],IRanges(
-                                plus_reads[line,'peak start'] -305, plus_reads[line,'peak end']+305 )))
+                        peak <- plus_reads [line,]
+                        # If the start of a line in less than the end of a previous read, move the start to the end of the previous read. 
+                        
+                        if(peak[,4] <= last_line[,5]){
+                                peak[,4] <-  last_line[,5]       
+                        }
+                        
+                       
+                        param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(peak [,'chr'],IRanges(
+                                peak[,'peak start'] -305, peak[,'peak end']+305 )))
                         
                         result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
                         
@@ -173,17 +190,18 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         df <- as.data.frame(result2)
                         
                         #second set of precessig to account for 5'read ends at the ead of a peak
-                        my.data.frame <- subset(df , df[,3] >= plus_reads[line,'peak start'] -5| df[,3] <= plus_reads[line,'peak end']+5)
+                        my.data.frame <-  subset(df, df[,3] >= peak[,'peak start'] -5 & df[,3] <= peak[,'peak end']+5)
+                        
                         no_of_as2 <- my.data.frame[,5]
                         
                         #add succesive peaks together
                         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
                         
                         reads_in_peak_pos <- length (no_of_as2)
-                        plus_read_count <- c(plus_read_count,reads_in_peak_pos)
+                       
                         print (c('number of forward strand reads per peak',line)) 
                         print (reads_in_peak_pos)
-                        
+                        last_line <- peak
                 }
                 
         }
