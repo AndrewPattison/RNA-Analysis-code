@@ -1,12 +1,13 @@
 
 
-### This R script takes a list of two bam files, a gff file and an NM number for a gene of interest and returns
-### a survival curve of poly A tail distribution over the two samples based on peaks called in the gff file
+### This R script takes a list of two bam files, a gff file and a gene name or peak number for a gene of interest and returns
+### a survival curve of poly A tail distribution over the samples (up to six at a time) based on peaks called in the gff file
 
 
 survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE){
         library(Rsamtools)
         
+        # Creates a .txt file named after the searched gene name 
         if (name != FALSE){
                 fileConn <- file(paste(name,'.txt',sep = ""))
                 writeLines('', fileConn)
@@ -16,22 +17,16 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
         
         gff_file <- read.table (gff, sep = "\t", header = FALSE)
         
-        
+        #Prints out the order files were processed (the order of the input list)
         print (c('Order of bam file processing', bam_list))
         
-        
-        # Pull the poly A reads from each bam file
+        # Pull the poly A reads from each bam file, calls poly_A_puller
         processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, name, peak)
         
-        
-        # Separate the pulled reads for plotting
+        # Samples of files from which to obtain plotting range
         l1 <- processed_bam_files[[1]]
         l2 <- processed_bam_files[[2]]
         
-        if (housekeeping_gene == TRUE) {
-                difference <<- length(l1)/length(l2)
-                print (toString(c(paste(bam_list[[2]]),'multiplied by',difference,'is equivalent to', paste(bam_list[[1]]))))
-        }
         #vodka_test <- ks.test(l1,l2, alternative="two.sided")
         #print (vodka_test)
         
@@ -42,6 +37,7 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
         ry <- lapply(processed_bam_files,max)
         r <- range(l1,l2)
         
+        # If statement to determine title of plot, plots first curve. 
         if(peak!=FALSE){
                 curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= c('peak',paste(peak)))
         }
@@ -50,7 +46,7 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
                 
         }
         
-        
+        # Plots all the remaining curves 
         peak_plot <- function(ecdf_value, collist,r=r ){
                 
                 curve((1-ecdf_value(x))*100,  from=r[1], to=r[2], col=collist, xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', add=TRUE)
@@ -58,30 +54,33 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
                 
         }
         
+        # Calls the peak plot function with colour parameters
         collist <- list("blue","green","orange", "yellow","purple")
         collist <- collist[c(1:length(bam_list)-1)]
         mapply (peak_plot, the_rest, collist, MoreArgs= list(r=r))
+        
+        # Plot legend 
         legend("topright", legend = paste(bam_list), fill = c("red","blue","green","orange", "yellow","purple"),text.width=40)
         
         
 }
+# Gets the poly A tails from a bam file and returns them as a list
 poly_A_puller<- function(bam_file, gff, name, peak){
         
         gff_peak_finder <- function(gff_file, peak) {
                        
                 
-                #Outpus the peaks matching a certain gene. NM for gene of interest must be in quotes (' ')
+                #Outpus the peaks matching a certain gene
                 
                 
                 gff_peaks <-gff
                 
                 numbers <- seq(1:length (gff_peaks [ ,1]))
-                #Number the gff peaks
+                
+                # Number the gff peaks
                 numbered_gff <- cbind(gff_peaks, numbers)
                 
                 # Search through for gene of interest.
-                
-                
                 
                 found_gene <- subset(numbered_gff, numbered_gff[,10] == peak)
                 
@@ -96,13 +95,13 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         gff_name_finder <- function(gff, name) {
                 
                 
-                #Outpus the peaks matching a certain gene. NM for gene of interest must be in quotes (' ')
+                # Outpus the peaks matching the input gene name
                 
                 
                 gff_peaks <-gff
                 
                 numbers <- seq(1:length (gff_peaks [ ,1]))
-                #Number the gff peaks
+                # Number the gff peaks
                 numbered_gff <- cbind(gff_peaks, numbers)
                 
                 # Search through for gene of interest.
@@ -113,13 +112,12 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 
                 output <-as.data.frame(found_gene)
                 
-                
                 return (output)
                 
         }
         
         
-        # Pull your gene of interest from the gff file. 
+        # Run peak finder or name finder depending on input 
         
         
         if (peak != FALSE){
@@ -131,9 +129,10 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers','name')
         }
         
-        
+        # Print peaks used for reference
         cat('peaks used: \n')
         print(goi)
+        
         # Split the gene of interest by orientation
         split_goi <- split(goi, goi[,'orientation'],drop = TRUE)
         
@@ -143,7 +142,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         file <- toString(paste(name,'.txt',sep = ""))
         write(bam_file, file ,append=TRUE)
         
-      
+        # For plus and minus reads, assign reads to peaks 
         all_poly_a_tails_minus<- numeric()
         last_line <- as.data.frame(data.frame(matrix(1, nrow=1,ncol=10))) 
         if (length(minus_reads)>=1){
@@ -165,12 +164,12 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         print (c('number of reverse strand reads per peak', line))
                         print (reads_in_peak_neg)
                         
-                        #add succesive peaks together
+                        # Add succesive peaks together
                         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
                         
+                        # Print to output file for later identification of 3' UTR switching
                         file <- toString(paste(name,'.txt',sep = ""))
                         write(c('Reverse strand peak',line), file ,append=TRUE)
-                        write(toString(peak),file=file,append=TRUE)
                         write('Reads:', file ,append=TRUE)
                         write(reads_in_peak_neg, file ,append=TRUE)
                         last_line <- peak
@@ -201,12 +200,12 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
                         df <- as.data.frame(result2)
                         
-                        #second set of precessig to account for 5'read ends at the ead of a peak
+                        # Second set of precessig to account for 5'read ends at the ead of a peak
                         my.data.frame <-  subset(df, df[,3] >= (peak[,'peak start'] -5) & df[,3] <= (peak[,'peak end']+5))
                         
                         no_of_as2 <- my.data.frame[,5]
                         
-                        #add succesive peaks together
+                        # Add succesive peaks together
                         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
                         
                         reads_in_peak_pos <- length (no_of_as2)
@@ -214,10 +213,9 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         print (c('number of forward strand reads per peak',line)) 
                         print (reads_in_peak_pos)
                         
-                        
+                        # Print to output file for later identification of 3' UTR switching
                         file <- toString(paste(name,'.txt',sep = ""))
                         write(c('Forward strand peak',line), file ,append=TRUE)
-                        write(toString(peak),file=file,append=TRUE)
                         write('Reads:', file ,append=TRUE)
                         write(reads_in_peak_pos, file ,append=TRUE)
                         
