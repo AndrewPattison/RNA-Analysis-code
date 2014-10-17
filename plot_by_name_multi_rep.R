@@ -140,7 +140,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         plus_reads <- split_goi[['+']]
         minus_reads <- split_goi[['-']]
         file <- toString(paste(name,'.txt',sep = ""))
-        write(bam_file, file ,append=TRUE)
+        write(c('\n',bam_file), file ,append=TRUE)
         
         # For plus and minus reads, assign reads to peaks 
         all_poly_a_tails_minus<- numeric()
@@ -168,11 +168,9 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
                         
                         # Print to output file for later identification of 3' UTR switching
-                        file <- toString(paste(name,'.txt',sep = ""))
-                        write(c('Reverse strand peak',line), file ,append=TRUE)
-                        write('Reads:', file ,append=TRUE)
-                        write(reads_in_peak_neg, file ,append=TRUE)
-                        last_line <- peak
+                        
+                        p <- c('Reverse strand peak',line,'Reads:',reads_in_peak_neg,'\n')
+                        write.table(p, file ,append=TRUE, row.names = FALSE, col.names = FALSE, eol = "\t", quote = FALSE)
                 }
         }
         
@@ -214,10 +212,8 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         print (reads_in_peak_pos)
                         
                         # Print to output file for later identification of 3' UTR switching
-                        file <- toString(paste(name,'.txt',sep = ""))
-                        write(c('Forward strand peak',line), file ,append=TRUE)
-                        write('Reads:', file ,append=TRUE)
-                        write(reads_in_peak_pos, file ,append=TRUE)
+                        p <- c('Forward strand peak',line,'Reads:',reads_in_peak_pos,'\n')
+                        write.table(p, file ,append=TRUE, row.names = FALSE, col.names = FALSE, eol = "\t", quote = FALSE)
                         
                         
                         last_line <- peak
@@ -228,6 +224,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         }
         # Combine the pulled reads back together
         all_poly_a_tails<- sort(c(all_poly_a_tails_plus, all_poly_a_tails_minus))
+        
         cat('next condition\n')
         
         
