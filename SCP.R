@@ -61,13 +61,16 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         par(bty="l")
         # If statement to determine title of plot, plots first curve. 
         if(peak!=FALSE){
-                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= c('peak',paste(peak)))
+                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', axes=FALSE, main= c('peak',paste(peak)))
         }
         else{
-                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name))   
+                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name),axes=FALSE)   
                 
         }
         
+        # Add a few more axis options
+        axis(1, pos=0)
+        axis(2, pos=0, at= c(0,25,50,75,100), tick = 25)
         # Plots all the remaining curves 
         peak_plot <- function(ecdf_value, collist,r=r ){
                 
@@ -75,9 +78,22 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
                 
                 
         }
-        meds<- lapply(processed_bam_files,median)
-        avg_med_1<- mean (as.numeric(meds[c(1,2,3)]))
-        avg_med_2<- mean (as.numeric(meds[c(4,5,6)]))
+        if (length (processed_bam_files) > 2){
+                
+                meds <- lapply(processed_bam_files,median)
+                avg_med_1<- mean (as.numeric(meds[c(1,2,3)]))
+                avg_med_2<- mean (as.numeric(meds[c(4,5,6)]))
+                
+                abline(v = avg_med_1, col = 'red', lty=3)
+                abline(v = avg_med_2, col = 'blue', lty=3)
+        }
+        else {
+                meds <- lapply(processed_bam_files, median)
+                avg_med_1<- as.numeric(meds[1])
+                avg_med_2<- as.numeric(meds[2])
+                abline(v = avg_med_1, col = 'red', lty=3)
+                abline(v = avg_med_2, col = 'blue', lty=3)
+        }
         
         # Calls the peak plot function with colour parameters
         collist <- list("blue","green","orange", "yellow","purple")
@@ -93,15 +109,29 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         }'
         read_count_df<-read.csv(paste(name,'.txt',sep = ""), header = FALSE)
         read_count_df[-1,-1]<- read_count_df[-1,-1]*normalisation_factor
-        read_count_df$total <-rowSums (read_count_df[,-1])
-        print (read_count_df)
+        
+        if (ncol(read_count_df) <= 2) {
+                read_count_df$total <-read_count_df[,2]
+        }
+        else{
+                read_count_df$total <-rowSums(read_count_df[,-1])    
+        }
+        
+                
         percentage_frame<- (read_count_df[,-1]/read_count_df[,'total'])*100
         percentage_frame<-cbind (read_count_df[,1],percentage_frame )
-        print(percentage_frame)
         write_frame <- cbind(read_count_df, percentage_frame[,-1])
-        print(write_frame)
+        
         file <- toString(paste(name,'.txt',sep = ""))
         write.table(write_frame,file,append=TRUE,col.names=FALSE)
+        
+        
+        #barplot(beside =TRUE,as.matrix(percentage_frame[,3:ncol(percentage_frame)-1]), main= paste(name),
+                #xlab="3'UTR usage",ylab="percent present",col=c('red','blue') , ylim= c(0,100), space =c(0,0.2))
+        print(read_count_df)
+        
+
+       # barplot(main= paste(name),beside=TRUE,as.matrix(read_count_df[,'total']/read_count_df[1,'total']),col=c('red','blue'),space =c(0,0.2), xlab = 'fold change in reads', ylab= 'condition', names.arg=c('N2', 'Gld2'))
         
 }
 # Gets the poly A tails from a bam file and returns them as a list
@@ -204,6 +234,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         print (c('number of reverse strand reads per peak', line))
                         print (reads_in_peak_neg)
                         
+                        
                         # Add succesive peaks together
                         all_poly_a_tails_minus<-c(all_poly_a_tails_minus,no_of_as1)
                         
@@ -258,7 +289,6 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         
                         
                         last_line <- peak
-                        
                         
                 }}
                 
