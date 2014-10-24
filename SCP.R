@@ -131,7 +131,7 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         print(read_count_df)
         
 
-       # barplot(main= paste(name),beside=TRUE,as.matrix(read_count_df[,'total']/read_count_df[1,'total']),col=c('red','blue'),space =c(0,0.2), xlab = 'fold change in reads', ylab= 'condition', names.arg=c('N2', 'Gld2'))
+       #barplot(main= paste(name),beside=TRUE,as.matrix(read_count_df[,'total']/read_count_df[1,'total']),col=c('red','blue'),space =c(0,0.2), xlab = 'fold change in reads', ylab= 'condition', names.arg=c('N2', 'Gld2'))
         
 }
 # Gets the poly A tails from a bam file and returns them as a list
