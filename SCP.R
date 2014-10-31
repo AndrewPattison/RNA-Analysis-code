@@ -4,14 +4,14 @@
 ### a survival curve of poly A tail distribution over the samples (up to six at a time) based on peaks called in the gff file
 
 
-SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, normalisation_factor = 1){
+SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, normalisation_factor = 1, number_of_replicates = 3, legend = FALSE){
         library(Rsamtools)
         
         # Creates a .txt file named after the searched gene name 
         if (name != FALSE){
-                fileConn <- file(paste(name,'.txt',sep = ""))
-                writeLines('', fileConn)
-                close(fileConn)
+                #fileConn <- file(paste(name,'.txt',sep = ""))
+                #writeLines('', fileConn)
+                #close(fileConn)
         }
         #  Read the gff file
         
@@ -27,6 +27,17 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         l1 <- processed_bam_files[[1]]
         l2 <- processed_bam_files[[2]]
         
+        
+        conditions_list <- tapply(processed_bam_files, (seq_along(processed_bam_files)-1) %/% number_of_replicates,list )
+       
+        
+       
+        #print(kruskal.test(conditions_list[[1]]))
+        #print(kruskal.test(conditions_list[[2]]))
+        #print(kruskal.test(processed_bam_files~1:3))
+        
+   
+       #lapply(processed_bam_files, function(x){qqnorm(x);qqline(x,col=2)})
         number_of_reads1 <- length(l1)
         number_of_reads2 <- length(l2)
         
@@ -45,9 +56,7 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
                 cat(norm_reads_2)
         }
         
-        vodka_test <- ks.test(l1,l2, alternative="two.sided")
-        print(t.test(l1,l2))
-        print (vodka_test)
+        
         
         
         # Make a reverse cumulative distribuition plot of the poly A reads
@@ -61,10 +70,10 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         par(bty="l")
         # If statement to determine title of plot, plots first curve. 
         if(peak!=FALSE){
-                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', axes=FALSE, main= c('peak',paste(peak)))
+                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percent Population (%)', xlab = 'Poly A length', axes=FALSE, main= c('peak',paste(peak)))
         }
         else{
-                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', main= paste(name),axes=FALSE)   
+                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percent Population (%)', xlab = 'Poly A length', main= paste(name),axes=FALSE)   
                 
         }
         
@@ -74,65 +83,70 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         # Plots all the remaining curves 
         peak_plot <- function(ecdf_value, collist,r=r ){
                 
-                curve((1-ecdf_value(x))*100,  from=r[1], to=r[2], col=collist, xlim=r, ylab= 'Percentage longer', xlab = 'Poly A length', add=TRUE)
+                curve((1-ecdf_value(x))*100,  from=r[1], to=r[2], col=collist, xlim=r, ylab= 'Percent Population (%)', xlab = 'Poly A length', add=TRUE)
                 
                 
         }
-        if (length (processed_bam_files) > 2){
-                
-                meds <- lapply(processed_bam_files,median)
-                avg_med_1<- mean (as.numeric(meds[c(1,2,3)]))
-                avg_med_2<- mean (as.numeric(meds[c(4,5,6)]))
-                
-                abline(v = avg_med_1, col = 'red', lty=3)
-                abline(v = avg_med_2, col = 'blue', lty=3)
-        }
-        else {
-                meds <- lapply(processed_bam_files, median)
-                avg_med_1<- as.numeric(meds[1])
-                avg_med_2<- as.numeric(meds[2])
-                abline(v = avg_med_1, col = 'red', lty=3)
-                abline(v = avg_med_2, col = 'blue', lty=3)
-        }
+
         
         # Calls the peak plot function with colour parameters
         collist <- list("blue","green","orange", "yellow","purple")
         collist <- collist[c(1:length(bam_list)-1)]
         mapply (peak_plot, the_rest, collist, MoreArgs= list(r=r))
         
-        # Plot legend 
-        'if (normalisation_factor!= FALSE){
-                legend("topright", legend = c(paste(norm_reads_1),paste(norm_reads_2)), fill = c("red","blue","green","orange", "yellow","purple"),text.width=120)
-        }
-        else{
-                legend("topright", legend = paste(bam_list), fill = c("red","blue","green","orange", "yellow","purple"),text.width=55)
-        }'
-        read_count_df<-read.csv(paste(name,'.txt',sep = ""), header = FALSE)
-        read_count_df[-1,-1]<- read_count_df[-1,-1]*normalisation_factor
+       
+       # read_count_df<-read.csv(paste(name,'.txt',sep = ""), header = FALSE)
+       # read_count_df[-1,-1]<- read_count_df[-1,-1]*normalisation_factor
         
-        if (ncol(read_count_df) <= 2) {
-                read_count_df$total <-read_count_df[,2]
-        }
-        else{
-                read_count_df$total <-rowSums(read_count_df[,-1])    
-        }
+       
         
                 
-        percentage_frame<- (read_count_df[,-1]/read_count_df[,'total'])*100
-        percentage_frame<-cbind (read_count_df[,1],percentage_frame )
-        write_frame <- cbind(read_count_df, percentage_frame[,-1])
+       # percentage_frame<- (read_count_df[,-1]/read_count_df[,'total'])*100
+       # percentage_frame<-cbind (read_count_df[,1],percentage_frame )
+       # write_frame <- cbind(read_count_df, percentage_frame[,-1])
         
-        file <- toString(paste(name,'.txt',sep = ""))
-        write.table(write_frame,file,append=TRUE,col.names=FALSE)
+       # file <- toString(paste(name,'.txt',sep = ""))
+       # write.table(write_frame,file,append=TRUE,col.names=FALSE)
         
-        
-        #barplot(beside =TRUE,as.matrix(percentage_frame[,3:ncol(percentage_frame)-1]), main= paste(name),
-                #xlab="3'UTR usage",ylab="percent present",col=c('red','blue') , ylim= c(0,100), space =c(0,0.2))
-        print(read_count_df)
-        
-
-       #barplot(main= paste(name),beside=TRUE,as.matrix(read_count_df[,'total']/read_count_df[1,'total']),col=c('red','blue'),space =c(0,0.2), xlab = 'fold change in reads', ylab= 'condition', names.arg=c('N2', 'Gld2'))
-        
+     
+     if(length(bam_list) >2){
+              group_mean1<- mean(unlist(conditions_list[[1]]))
+              groupsd1 <- sd(unlist(conditions_list[[1]]))
+              list1 <- unlist(conditions_list[[1]])
+              list2 <- unlist(conditions_list[[2]])
+              se <- function(x) sqrt(var(x)/length(x))
+              se1  <- se(list1)
+              se2 <- se(list2)
+              group_mean2<- mean(unlist(conditions_list[[2]]))
+              groupsd2 <- sd(unlist(conditions_list[[2]]))
+              segments(x0 =group_mean1 , y0 = 0, x1= group_mean1, y1 = 100,lty=3,col='red')
+              segments(x0 =group_mean2 , y0 = 0, x1= group_mean2, y1 = 100,lty=3,col='blue')
+              segments(x0 =group_mean1 , y0 = 100, x1= group_mean2, y1 = 100)
+              legend('topright', bty = "n", legend = c ('D=', paste(round(group_mean1-group_mean2,2)), '±', paste(round( se1+se2,2))))
+     }
+           
+ 
+      else {
+              means <- lapply(processed_bam_files, mean)
+              group_mean1<- as.numeric(means[1])
+              group_mean2<- as.numeric(means[2])
+              segments(x0 =group_mean1 , y0 = 100, x1= group_mean2, y1 = 100)
+              
+              segments(x0 =group_mean1 , y0 = 0, x1= group_mean1, y1 = 100,lty=3,col='red')
+              segments(x0 =group_mean2 , y0 = 0, x1= group_mean2, y1 = 100,lty=3,col='blue')
+              
+              se <- function(x) sqrt(var(x)/length(x))
+              se1  <- se(processed_bam_files[[1]])
+              se2 <- se(processed_bam_files[[2]])
+              
+              legend('topright', bty = "n", legend = c ('D=', paste(round(group_mean1-group_mean2,2)), '±', paste(round( se1+se2,2))))
+      }
+     
+    
+    if(legend == TRUE){
+        legend("topright",bty = "n", legend = paste(bam_list), fill = c("red","blue","green","orange", "yellow","purple"),text.width=40)
+    }
+      
 }
 # Gets the poly A tails from a bam file and returns them as a list
 poly_A_puller<- function(bam_file, gff, name, peak){
@@ -295,8 +309,8 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         }
         # Combine the pulled reads back together
         all_poly_a_tails<- sort(c(all_poly_a_tails_plus, all_poly_a_tails_minus))
-        file <- toString(paste(name,'.txt',sep = ""))
-        write(toString(c(bam_file,list_of_peaks)),file,append=TRUE)
+        #file <- toString(paste(name,'.txt',sep = ""))
+        #write(toString(c(bam_file,list_of_peaks)),file,append=TRUE)
         cat('next condition\n')
         
         
