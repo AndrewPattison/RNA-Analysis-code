@@ -8,11 +8,13 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         library(Rsamtools)
         
         # Creates a .txt file named after the searched gene name 
-        if (name != FALSE){
-                #fileConn <- file(paste(name,'.txt',sep = ""))
-                #writeLines('', fileConn)
-                #close(fileConn)
-        }
+       # if (housekeeping_gene != FALSE & length(bam_list>2)){
+       #         file.create('PAT_seq.txt', showWarnings = TRUE)
+        #      
+        #}
+        #else if (housekeeping_gene != FALSE & length(bam_list <=2)){
+       #         file.create('REPAT.txt', showWarnings = TRUE)
+        #}
         #  Read the gff file
         
         gff_file <- read.table (gff, sep = "\t", header = FALSE)
@@ -119,10 +121,24 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
               se2 <- se(list2)
               group_mean2<- mean(unlist(conditions_list[[2]]))
               groupsd2 <- sd(unlist(conditions_list[[2]]))
+              print(group_mean1)
               segments(x0 =group_mean1 , y0 = 0, x1= group_mean1, y1 = 100,lty=3,col='red')
               segments(x0 =group_mean2 , y0 = 0, x1= group_mean2, y1 = 100,lty=3,col='blue')
               segments(x0 =group_mean1 , y0 = 100, x1= group_mean2, y1 = 100)
               legend('topright', bty = "n", legend = c ('D=', paste(round(group_mean1-group_mean2,2)), '±', paste(round( se1+se2,2))))
+              file <- 'PAT_seq.txt'
+              
+              if(name!= FALSE){
+                      write_matrix <- matrix(c(paste(name),paste(name),'N2', 'Gld-2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3) 
+              }
+              else{
+                      write_matrix <- matrix(c(paste(peak),paste(peak),'N2', 'Gld-2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3)   
+              }
+              
+              print(write_matrix)
+              write.table(write_matrix,file,append=TRUE,row.names=FALSE, col.names=FALSE,quote=FALSE)       
+     
+     
      }
            
  
@@ -140,6 +156,22 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
               se2 <- se(processed_bam_files[[2]])
               
               legend('topright', bty = "n", legend = c ('D=', paste(round(group_mean1-group_mean2,2)), '±', paste(round( se1+se2,2))))
+              
+              
+              file <- 'REPAT.txt'
+              if(name!= FALSE){
+                write_matrix <- matrix(c(paste(name),paste(name),'N2', 'Gld-2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3) 
+              }
+              else{
+                      write_matrix <- matrix(c(paste(peak),paste(peak),'N2', 'Gld-2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3)   
+              }
+                
+                print (write_matrix)
+           
+              write.table(write_matrix,file,append=TRUE,row.names=FALSE, col.names=FALSE, quote=FALSE) 
+      
+      
+      
       }
      
     
