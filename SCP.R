@@ -24,7 +24,7 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         
         # Pull the poly A reads from each bam file, calls poly_A_puller
         processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, name, peak)
-        
+        print(str(processed_bam_files))
         # Samples of files from which to obtain plotting range
         l1 <- processed_bam_files[[1]]
         l2 <- processed_bam_files[[2]]
@@ -247,6 +247,8 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         
         # Print peaks used for reference
         cat('peaks used: \n')
+        # Remove duplicate peaks
+        goi <- subset(goi, !duplicated(goi[,'peak start'])) 
         print(goi)
         
         # Split the gene of interest by orientation
