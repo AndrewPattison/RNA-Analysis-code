@@ -4,9 +4,9 @@
 ### a survival curve of poly A tail distribution over the samples (up to six at a time) based on peaks called in the gff file
 
 
-SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, normalisation_factor = 1, number_of_replicates = 3, legend = FALSE){
+SCP <- function(bam_list, gff, name, housekeeping_gene=FALSE, normalisation_factor = 1, number_of_replicates = 3, legend = FALSE){
         library(Rsamtools)
-        
+       
         # Creates a .txt file named after the searched gene name 
        # if (housekeeping_gene != FALSE & length(bam_list>2)){
        #         file.create('PAT_seq.txt', showWarnings = TRUE)
@@ -17,7 +17,7 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         #}
         #  Read the gff file
         
-        gff_file <- read.table (gff, sep = "\t", header = FALSE)
+       gff_file <- read.delim('TB22-34-peaks.gff', header=F, comment.char="")
         
         #Prints out the order files were processed (the order of the input list)
         print (c('Order of bam file processing', bam_list))
@@ -70,14 +70,11 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
         
         # Make graph have no box
         par(bty="l")
-        # If statement to determine title of plot, plots first curve. 
-        if(peak!=FALSE){
-                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percent Population (%)', xlab = 'Poly A length', axes=FALSE, main= c('peak',paste(peak)))
-        }
-        else{
-                curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percent Population (%)', xlab = 'Poly A length', main= paste(name),axes=FALSE)   
+        # Statement to determine title of plot, plots first curve. 
+        
+        curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="red", xlim=r, ylab= 'Percent Population (%)', xlab = 'Poly A length', main= paste(name),axes=FALSE)   
                 
-        }
+        
         
         # Add a few more axis options
         axis(1, pos=0)
@@ -183,32 +180,7 @@ SCP <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, 
 # Gets the poly A tails from a bam file and returns them as a list
 poly_A_puller<- function(bam_file, gff, name, peak){
         
-        gff_peak_finder <- function(gff_file, peak) {
-                       
-                
-                #Outpus the peaks matching a certain gene
-                
-                
-                gff_peaks <-gff
-                
-                numbers <- seq(1:length (gff_peaks [ ,1]))
-                
-                # Number the gff peaks
-                numbered_gff <- cbind(gff_peaks, numbers)
-                
-                # Search through for gene of interest.
-                
-                found_gene <- subset(numbered_gff, numbered_gff[,10] == peak)
-                
-                output <-as.data.frame(found_gene)
-                
-                
-                return (output)
-                
-        }
-        
-        
-        gff_name_finder <- function(gff, name) {
+        gff_gene_finder <- function(gff, name) {
                 
                 
                 # Outpus the peaks matching the input gene name
@@ -216,7 +188,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 
                 gff_peaks <-gff
                 
-                numbers <- seq(1:length (gff_peaks [ ,1]))
+                numbers <- 1:nrow(gff_peaks)
                 # Number the gff peaks
                 numbered_gff <- cbind(gff_peaks, numbers)
                 
@@ -233,17 +205,16 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         }
         
         
+        
+        
+        
         # Run peak finder or name finder depending on input 
         
         
-        if (peak != FALSE){
-                goi<- gff_peak_finder(gff, peak)
+   
+                goi<- gff_gene_finder(gff, name)
                 colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers')
-        }
-        else{
-                goi <- gff_name_finder(gff, name) 
-                colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers','name')
-        }
+
         
         # Print peaks used for reference
         cat('peaks used: \n')
@@ -291,8 +262,10 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         p <- c(line,reads_in_peak_neg)
                         #write.table(p, file ,append=TRUE, row.names = FALSE, col.names = FALSE, eol = "\t", quote = FALSE)
                 }
+               
         }
-        
+        # Stop the function erroring out if there are no pol-A reads
+ 
         
         # The poly_A flag values 
         all_poly_a_tails_plus <- numeric()
@@ -315,13 +288,17 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         
                         result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
                         result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
-                        df <- as.data.frame(result2)
-                        
+           
+                        result2 <- result2[[1]]
+     
+                        if (length(result2[[5]][[1]])!= 0){
+                        df <- cbind(unlist(result2[[3]]), unlist(result2[[5]][[1]]))
+ 
                         # Second set of precessig to account for 5'read ends at the ead of a peak
                         if (nrow(df)>0){
-                        my.data.frame <-  subset(df, df[,3] >= (peak[,'peak start'] -5) & df[,3] <= (peak[,'peak end']+5))
-                        
-                        no_of_as2 <- my.data.frame[,5]
+                        my.data.frame <-  subset(df, df[,1] >= (peak[,'peak start'] -5) & df[,1] <= (peak[,'peak end']+5))
+                       
+                        no_of_as2 <- my.data.frame[,2]
                         list_of_peaks <-  c(list_of_peaks, length(no_of_as2))
                         # Add succesive peaks together
                         all_poly_a_tails_plus <-c(all_poly_a_tails_plus, no_of_as2)
@@ -338,9 +315,14 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                         
                         last_line <- peak
                         
-                }}
-                
-        }
+                }
+           
+                        
+                        }}
+              
+        
+       
+        } 
         # Combine the pulled reads back together
         all_poly_a_tails<- sort(c(all_poly_a_tails_plus, all_poly_a_tails_minus))
         #file <- toString(paste(name,'.txt',sep = ""))
