@@ -17,7 +17,7 @@ SCP <- function(bam_list, gff, name, housekeeping_gene=FALSE, normalisation_fact
         #}
         #  Read the gff file
         
-       gff_file <- read.delim('TB22-34-peaks.gff', header=F, comment.char="")
+       gff_file <- read.delim(gff, header=FALSE, comment.char="")
         
         #Prints out the order files were processed (the order of the input list)
         print (c('Order of bam file processing', bam_list))
@@ -31,7 +31,7 @@ SCP <- function(bam_list, gff, name, housekeeping_gene=FALSE, normalisation_fact
         
         
         conditions_list <- tapply(processed_bam_files, (seq_along(processed_bam_files)-1) %/% number_of_replicates,list )
-       
+      
         
        
         #print(kruskal.test(conditions_list[[1]]))
@@ -188,7 +188,7 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 
                 gff_peaks <-gff
                 
-                numbers <- 1:nrow(gff_peaks)
+                numbers <- seq(1:length (gff_peaks [ ,1]))
                 # Number the gff peaks
                 numbered_gff <- cbind(gff_peaks, numbers)
                 
@@ -211,10 +211,12 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         # Run peak finder or name finder depending on input 
         
         
-   
+       
                 goi<- gff_gene_finder(gff, name)
                 colnames(goi) <- c('chr', 'program', 'type', 'peak start', 'peak end','DNS','orientation', 'DNS2','information','numbers')
-
+                peakno <- goi[,'information'] 
+        print(peakno)
+        
         
         # Print peaks used for reference
         cat('peaks used: \n')
@@ -237,8 +239,8 @@ poly_A_puller<- function(bam_file, gff, name, peak){
         if (length(minus_reads)>=1){
                 for (line in 1:nrow(minus_reads)){
                         peak <- minus_reads [line,]
-                        # If the start of a line in less than the end of a previous read, move the start to the end of the previous read. 
-                        if(peak[,4] <= last_line[,5]){
+                        # If the start of a line in less than the end of a previous peak, move the start of the peak to the end of the previous peak. 
+                        if(peak[,4] <= last_line[,5]& peak[,5] >= last_line[,5]){
                                 peak[,4] <-  last_line[,5]       
                         }
                         
@@ -276,9 +278,8 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 for (line in 1:nrow(plus_reads)){
                         
                         peak <- plus_reads [line,]
-                        # If the start of a line in less than the end of a previous read, move the start to the end of the previous read. 
-                        
-                        if(peak[,4] <= last_line[,5]){
+                        # If the start of a line in less than the end of a previous peak, move the start of the peak to the end of the previous peak. 
+                        if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
                                 peak[,4] <-  last_line[,5]       
                         }
                         
