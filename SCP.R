@@ -31,7 +31,7 @@ SCP <- function(bam_list, gff, name, housekeeping_gene=FALSE, normalisation_fact
         
         
         conditions_list <- tapply(processed_bam_files, (seq_along(processed_bam_files)-1) %/% number_of_replicates,list )
-      
+        print (conditions_list)
         
        
         #print(kruskal.test(conditions_list[[1]]))
@@ -157,10 +157,10 @@ SCP <- function(bam_list, gff, name, housekeeping_gene=FALSE, normalisation_fact
               
               file <- 'REPAT.txt'
               if(name!= FALSE){
-                write_matrix <- matrix(c(paste(name),paste(name),'N2', 'Gld-2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3) 
+                write_matrix <- matrix(c(paste(name),paste(name),'Group1', 'Group2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3) 
               }
               else{
-                      write_matrix <- matrix(c(paste(peak),paste(peak),'N2', 'Gld-2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3)   
+                      write_matrix <- matrix(c(paste(peak),paste(peak),'Group1', 'Group2', as.numeric(group_mean1), as.numeric(group_mean2)),nrow=2,ncol=3)   
               }
                 
                 print (write_matrix)
@@ -194,12 +194,11 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 
                 # Search through for gene of interest.
                 
-                numbered_gff[grep(name, numbered_gff[,9], ignore.case=TRUE), "name"] <- name
+                index1 <- with(numbered_gff, grepl (paste('=',name,';',sep=""), numbered_gff[,9],fixed=TRUE))
                 
-                found_gene <- subset(numbered_gff, numbered_gff["name"] == name)
                 
-                output <-as.data.frame(found_gene)
-                
+                output <-numbered_gff[index1, ]
+                print(output)
                 return (output)
                 
         }
