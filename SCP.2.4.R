@@ -2,7 +2,7 @@
 ### This R script takes a list of two bam files, a gff file and a gene name or peak number for a gene of interest and returns
 ### a survival curve of poly A tail distribution over the samples (up to six at a time) based on peaks called in the gff file
 ### !to use!:
-### SCP(gff, name, number_of_replicates = 2, combine = TRUE, two_curve = FALSE, save_as = FALSE, select = FALSE)
+### SCP(gff, name, number_of_replicates = 2, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE)
 ### gff <- gff file
 ### name <- name of gene of interest
 ### number of replicates defaults to 2
@@ -113,19 +113,25 @@ plot_mean_legend <- function(bam_list, number_of_replicates, processed_bam_files
 }
 
 
-SCP <- function(gff, name, number_of_replicates = 2, combine = TRUE, two_curve = FALSE, save_as = FALSE, select = FALSE){
+SCP <- function(gff, name, number_of_replicates = 2, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE){
     library(Rsamtools)
     # Write plot output to file
     
-    dir.create(file.path("./sCURVES/"), showWarnings= FALSE)
-    setEPS()
-    
-    if (save_as!= FALSE){
-    file <- paste('./sCURVES/', save_as,'.eps', sep = "")
+    if (save== TRUE){
+            dir.create(file.path("./sCURVES/"), showWarnings= FALSE)
+            setEPS()
+            file <- paste('./sCURVES/', name,'.eps', sep = "")
+            postscript(file)
     }
-    postscript(file)
+            if (save== FALSE){
+            }
+            else{
+                    dir.create(file.path("./sCURVES/"), showWarnings= FALSE)
+                    setEPS()
+                    file <- paste('./sCURVES/', save,'.eps', sep = "")
+                    postscript(file)
+            }
    
-    
     bam_list <- create_bam_list()
     if(length(bam_list) %% number_of_replicates != 0){
         return("ERROR: bam files does not match number of replicates, please check the data.")
