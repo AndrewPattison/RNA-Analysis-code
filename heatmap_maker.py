@@ -82,23 +82,26 @@ def plot_matrix_plus(plus_reads):
     yaxis = []
     
     for lis in added:
-        yaxis.append(lis[0])
-        xaxis.append(lis[1])        
+        yaxis.append(lis[1])
+        xaxis.append(lis[0])        
 
     xmax = max(xaxis)
     ymax = max(yaxis)
-
-    mat = np.zeros((xmax +1 ,ymax + 1))
-    print(mat)
     
+    mat = np.zeros((ymax+1 ,xmax + 1))
 
-    for lis in added:
+    for lis in plus_reads:
         mat[lis[1], lis[0]] += 1 
-
+        
+    
     matrix = np.log2(mat +1)
-   
 
     pylab.pcolor(np.array(matrix))
+    pylab.xlim(0, xmax)
+    pylab.ylim(0, ymax)
+    pylab.title("Forward Strand")
+    pylab.xlabel("Chromosomal Position (3'end)")
+    pylab.ylabel("Poly-A Tail Length") 
     pylab.colorbar()
     pylab.show()
     print ('done')
@@ -123,6 +126,11 @@ def plot_matrix_minus(minus_reads):
     matrix = np.log2(mat +1)
 
     pylab.pcolor(np.array(matrix))
+    pylab.xlim(0, xmax)
+    pylab.ylim(0, ymax)
+    pylab.title("Reverse Strand")
+    pylab.xlabel("Chromosomal Position (3'end)")
+    pylab.ylabel("Poly-A Tail Length") 
     pylab.colorbar()
     pylab.show()
     print ('done')
