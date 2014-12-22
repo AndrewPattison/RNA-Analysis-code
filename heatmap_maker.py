@@ -1,3 +1,8 @@
+"""Usage: from the command line type python <chromosome> <start> <end> <reference_genome>. Reference genome should be in bed format. 
+May work in other bedtools readable formats (gff etc).""" 
+
+
+
 import fnmatch
 import os
 import pysam
@@ -8,6 +13,7 @@ import re
 import pylab
 import sys
 from collections import defaultdict
+from pybedtools import BedTool
 
 def get_regions_of_interst():
 	
@@ -17,9 +23,35 @@ def get_regions_of_interst():
 #(raw_input('What chromosomal position would you like to start at?'))
 	end = int(sys.argv[3]) 
 #(raw_input('What chromosomal position would you like to end at?'))
+    genome = sys.argv[4]
 
 	return(chromosome,start,end) 
 
+def get_genes_and_coords(bed_file, chromosome):
+    """Takes  a bed file and returns two dictionaries of 3' ends"""
+    genes = BedTool(bed_file)
+    #print(genes)
+    #print(dir(genes))
+    forward_genes = []
+    reverse_genes = []
+    for gene in genes:
+        if gene[5] == '+' and gene[0]== chromosome:
+            forward_genes.append(gene)
+        else if gene[0]== chromosome:
+            reverse_genes.append(gene)
+
+    plus_dict = {}
+    minus_dict = {}
+
+    for gene in forward_genes:
+        plus_dict[str(gene[3])]= int(gene[2])
+
+    for gene in reverse_genes:
+        minus_dict[str(gene[3])]= int(gene[1])
+
+    print(plus_dict, minus_dict)
+
+    return(plus_dict, minus_dict)
 
 def get_all_bam_vals(coords):
     
@@ -141,6 +173,7 @@ def plot_matrix_minus(minus_reads):
     return
 
 start_end = get_regions_of_interst() 
+get_genes_and_coords(sys.argv[4],start_end[0])
 regions_list = get_all_bam_vals(start_end)
 list_of_lists = get_list_of_lists(regions_list)
 strands = split_by_strand(list_of_lists)
