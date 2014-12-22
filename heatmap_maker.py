@@ -6,13 +6,17 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import re
 import pylab
+import sys
 from collections import defaultdict
 
 def get_regions_of_interst():
 	
-	chromosome = raw_input('What chromosome you you like to explore?')
-	start = int(raw_input('What chromosomal position would you like to start at?'))
-	end = int(raw_input('What chromosomal position would you like to end at?'))
+	chromosome = sys.argv[1]
+#raw_input('What chromosome you you like to explore?')
+	start = int(sys.argv[2])
+#(raw_input('What chromosomal position would you like to start at?'))
+	end = int(sys.argv[3]) 
+#(raw_input('What chromosomal position would you like to end at?'))
 
 	return(chromosome,start,end) 
 
@@ -85,13 +89,13 @@ def plot_matrix_plus(plus_reads):
         yaxis.append(lis[1])
         xaxis.append(lis[0])        
 
-    xmax = max(xaxis)
+    xmax = max(xaxis)//100
     ymax = max(yaxis)
     
-    mat = np.zeros((ymax+1 ,xmax + 1))
+    mat = np.zeros((ymax+1 ,xmax+ 1))
 
     for lis in plus_reads:
-        mat[lis[1], lis[0]] += 1 
+        mat[lis[1], lis[0]//100] += 1 
         
     
     matrix = np.log2(mat +1)
@@ -114,13 +118,13 @@ def plot_matrix_minus(minus_reads):
         yaxis.append(lis[1])
         xaxis.append(lis[0])
 
-    xmax = max(xaxis)
+    xmax = max(xaxis)//100
     ymax = max(yaxis)
     
-    mat = np.zeros((ymax+1 ,xmax + 1))
+    mat = np.zeros((ymax +1 ,xmax  + 1))
 
     for lis in minus_reads:
-        mat[lis[1], lis[0]] += 1 
+        mat[lis[1], lis[0]//100] += 1 
         
     
     matrix = np.log2(mat +1)
