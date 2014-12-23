@@ -1,4 +1,4 @@
-"""Usage: from the command line type python <chromosome> <start> <end> <reference_genome>. Reference genome should be in bed format. 
+"""Usage: from the command line type python <chromosome> <start> <end> <reference_genome> <condensation factor>. Reference genome should be in bed format. 
 May work in other bedtools readable formats (gff etc).""" 
 
 
@@ -23,7 +23,7 @@ def get_regions_of_interst():
 #(raw_input('What chromosomal position would you like to start at?'))
 	end = int(sys.argv[3]) 
 #(raw_input('What chromosomal position would you like to end at?'))
-    genome = sys.argv[4]
+    	genome = sys.argv[4]
 
 	return(chromosome,start,end) 
 
@@ -37,7 +37,7 @@ def get_genes_and_coords(bed_file, chromosome):
     for gene in genes:
         if gene[5] == '+' and gene[0]== chromosome:
             forward_genes.append(gene)
-        else if gene[0]== chromosome:
+        elif gene[0]== chromosome:
             reverse_genes.append(gene)
 
     plus_dict = {}
@@ -106,8 +106,8 @@ def split_by_strand(list_of_lists):
                 minus_reads.append(value_group)
     return (plus_reads,minus_reads)
     
-def plot_matrix_plus(plus_reads):
-    
+def plot_matrix_plus(plus_reads, plus_dict, condensation_factor):
+    condensation_factor = int(condensation_factor)
 
     added= []
     for lis in plus_reads:
@@ -121,61 +121,75 @@ def plot_matrix_plus(plus_reads):
         yaxis.append(lis[1])
         xaxis.append(lis[0])        
 
-    xmax = max(xaxis)//100
+    xmax = max(xaxis)//condensation_factor
     ymax = max(yaxis)
     
     mat = np.zeros((ymax+1 ,xmax+ 1))
 
     for lis in plus_reads:
-        mat[lis[1], lis[0]//100] += 1 
+        mat[lis[1], lis[0]//condensation_factor] += 1 
         
     
     matrix = np.log2(mat +1)
 
+    matrix = np.log2(mat +1)
+    print(plus_dict.values)
     pylab.pcolor(np.array(matrix))
+    keys = np.array(plus_dict.keys())
+    vals = np.array(plus_dict.values())//condensation_factor
+    pylab.xticks(vals, keys, rotation = 90)
     pylab.xlim(0, xmax)
     pylab.ylim(0, ymax)
     pylab.title("Forward Strand")
-    pylab.xlabel("Chromosomal Position (3'end)")
-    pylab.ylabel("Poly-A Tail Length") 
-    pylab.colorbar()
+    pylab.xlabel("Chromosomal Position (3'end) condensed by a factor of %d" %condensation_factor)
+    pylab.ylabel("Poly-A Tail Length")
+    cb = pylab.colorbar()
+    cb.set_label ("log2(points +1)")
+    pylab.subplots_adjust(bottom = 0.23)
     pylab.show()
     print ('done')
     return
 
-def plot_matrix_minus(minus_reads):
+def plot_matrix_minus(minus_reads, minus_dict, condensation_factor): 
+    condensation_factor = int(condensation_factor)
     xaxis = []
     yaxis = []
     for lis in minus_reads:
         yaxis.append(lis[1])
         xaxis.append(lis[0])
 
-    xmax = max(xaxis)//100
+    xmax = max(xaxis)//condensation_factor
+    xmin = min(xaxis)//condensation_factor	
     ymax = max(yaxis)
     
     mat = np.zeros((ymax +1 ,xmax  + 1))
 
     for lis in minus_reads:
-        mat[lis[1], lis[0]//100] += 1 
+        mat[lis[1], lis[0]//condensation_factor] += 1 
         
     
     matrix = np.log2(mat +1)
-
+    print(minus_dict.values)
     pylab.pcolor(np.array(matrix))
+    keys = np.array(minus_dict.keys())
+    vals = np.array(minus_dict.values())//condensation_factor
+    pylab.xticks(vals, keys, rotation = 90)
     pylab.xlim(0, xmax)
     pylab.ylim(0, ymax)
     pylab.title("Reverse Strand")
-    pylab.xlabel("Chromosomal Position (3'end)")
-    pylab.ylabel("Poly-A Tail Length") 
-    pylab.colorbar()
+    pylab.xlabel("Chromosomal Position (3'end) condensed by a factor of %d" %condensation_factor)
+    pylab.ylabel("Poly-A Tail Length")
+    cb = pylab.colorbar()
+    cb.set_label ("log2(points +1)")
+    pylab.subplots_adjust(bottom = 0.23)
     pylab.show()
     print ('done')
     return
 
 start_end = get_regions_of_interst() 
-get_genes_and_coords(sys.argv[4],start_end[0])
+genes_coords = get_genes_and_coords(sys.argv[4],start_end[0])
 regions_list = get_all_bam_vals(start_end)
 list_of_lists = get_list_of_lists(regions_list)
 strands = split_by_strand(list_of_lists)
-plot_matrix_plus(strands[0])
-plot_matrix_minus(strands[1])
+plot_matrix_plus(strands[0], genes_coords[0], sys.argv[5])
+plot_matrix_minus(strands[1], genes_coords[1], sys.argv[5])
