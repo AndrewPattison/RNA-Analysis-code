@@ -1,7 +1,7 @@
+#!/usr/bin/env python
+
 """Usage: from the command line type python <chromosome> <start> <end> <reference_genome>. Reference genome should be in bed format. 
 May work in other bedtools readable formats (gff etc).""" 
-
-
 
 import fnmatch
 import os
@@ -18,14 +18,13 @@ from pybedtools import BedTool
 def get_regions_of_interst():
 	
 	chromosome = sys.argv[1]
-#raw_input('What chromosome you you like to explore?')
-	start = int(sys.argv[2])
-#(raw_input('What chromosomal position would you like to start at?'))
-	end = int(sys.argv[3]) 
-#(raw_input('What chromosomal position would you like to end at?'))
-    genome = sys.argv[4]
 
-	return(chromosome,start,end) 
+	start = int(sys.argv[2])
+
+	end = int(sys.argv[3]) 
+
+
+	return (chromosome,start,end) 
 
 def get_genes_and_coords(bed_file, chromosome):
     """Takes  a bed file and returns two dictionaries of 3' ends"""
@@ -37,7 +36,7 @@ def get_genes_and_coords(bed_file, chromosome):
     for gene in genes:
         if gene[5] == '+' and gene[0]== chromosome:
             forward_genes.append(gene)
-        else if gene[0]== chromosome:
+        elif gene[0]== chromosome:
             reverse_genes.append(gene)
 
     plus_dict = {}
@@ -49,9 +48,16 @@ def get_genes_and_coords(bed_file, chromosome):
     for gene in reverse_genes:
         minus_dict[str(gene[3])]= int(gene[1])
 
-    print(plus_dict, minus_dict)
+    print (plus_dict, minus_dict)
 
-    return(plus_dict, minus_dict)
+    return (plus_dict, minus_dict)
+
+
+class Record: pass
+
+item = Record()
+item.attribute = 42
+
 
 def get_all_bam_vals(coords):
     
@@ -94,7 +100,7 @@ def get_list_of_lists (regions_list):
     list_of_lists.sort(key=lambda x:x)
     #print(list_of_lists)
     
-    return(list_of_lists)
+    return (list_of_lists)
 
 def split_by_strand(list_of_lists):
     plus_reads =[]
@@ -108,16 +114,11 @@ def split_by_strand(list_of_lists):
     
 def plot_matrix_plus(plus_reads):
     
-
-    added= []
-    for lis in plus_reads:
-        lis[0] += lis [3]
-        added.append(lis)
-        
     xaxis = []
     yaxis = []
     
-    for lis in added:
+    for lis in plus_reads:
+        lis[0] += lis [3]
         yaxis.append(lis[1])
         xaxis.append(lis[0])        
 
@@ -172,10 +173,11 @@ def plot_matrix_minus(minus_reads):
     print ('done')
     return
 
-start_end = get_regions_of_interst() 
-get_genes_and_coords(sys.argv[4],start_end[0])
-regions_list = get_all_bam_vals(start_end)
-list_of_lists = get_list_of_lists(regions_list)
-strands = split_by_strand(list_of_lists)
-plot_matrix_plus(strands[0])
-plot_matrix_minus(strands[1])
+if __name__ == "__main__":
+    start_end = get_regions_of_interst() 
+    get_genes_and_coords(sys.argv[4],start_end[0])
+    regions_list = get_all_bam_vals(start_end)
+    list_of_lists = get_list_of_lists(regions_list)
+    strands = split_by_strand(list_of_lists)
+    plot_matrix_plus(strands[0])
+    plot_matrix_minus(strands[1])
