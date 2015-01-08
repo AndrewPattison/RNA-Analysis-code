@@ -6,6 +6,7 @@ gff_file <-  read.table (gff_file , sep = "\t", header = FALSE)
 
 sam_files <- lapply(sam_list ,DPP, gff_file, gene_of_interest)
 
+
 l1 <- sam_files[[1]]
 l2 <- sam_files[[2]]
 
@@ -30,7 +31,7 @@ DPP <- function(sam_input, gff_file, gene_of_interest) {
         ###Outputs the reads that fall anywhere inside peaks matching a given gene. Gene selected by NM_ for gene of interest, which must be in quotes (' ')###
         
         #Reads in the gff file
-        gff_peaks <- gff_file  #read.table (gff_file , sep = "\t", header = FALSE)
+        gff_peaks <- gff_file  
         
         #Generates a sequence of numbers to number the gff peaks
         
@@ -68,22 +69,42 @@ DPP <- function(sam_input, gff_file, gene_of_interest) {
         
         for (I in 1:nrow(zero_sam_file)) {
                 
-                read <- zero_sam_file[I,'position']
+                read <- zero_sam_file[I,]
+                ori <- bitwAND (read[I,2],16)
+                if (ori ==0){
+                        
                 
-                if (last_peak[,4] -100 <= read & last_peak[,5] >= read){
+                if (last_peak[,4] -100 <= read[,'position'] & last_peak[,5] >= read[,'position'] ){
                         zero_sam_file[I,24] <- last_peak[10]
                 }
                                 
                 else{
                         
-                logv = (output_gff[,'read start'] -100 <= read &  output_gff[,'read end'] >= read)
+                logv = (output_gff[,'read start'] -100 <= read[,'position']  &  output_gff[,'read end'] >= read[,'position'] )
                 
                 if (logv == TRUE){
                         peak_no <- as.numeric(output_gff [logv,'numbers'])
                         last_peak <- output_gff [logv,] 
                        
                         zero_sam_file[I,'zeroes'] <- peak_no
-                }  
+                } } 
+        }
+        else {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         }
         }
         # A file with annotations in c24 where reads have been matched to peaks

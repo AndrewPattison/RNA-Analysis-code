@@ -41,9 +41,10 @@ DPP <- function(sam_input, gff_file, gene_of_interest) {
         
         for (I in 1:length(zero_sam_file[ ,1])) {
                 
+                ori <- read
                 read <- zero_sam_file[I,4]
                 
-                if (last_peak[,4] -100 <= read &  last_peak[,5] >= read){
+                if (last_peak[,4] -100 <= read &  last_peak[,5] >= read & read[,3 ]==last_peak[,1]){
                         zero_sam_file[I,24] <- last_peak[10]
                 }
                                 

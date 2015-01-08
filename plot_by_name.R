@@ -16,7 +16,7 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
         
         # Pull the poly A reads from each bam file
         processed_bam_files <- lapply(bam_list , poly_A_puller, gff_file, name, peak)
-        
+        print(str(processed_bam_files))
         
         # Separate the pulled reads for plotting
         l1 <- processed_bam_files[[1]]

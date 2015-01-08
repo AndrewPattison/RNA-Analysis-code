@@ -265,8 +265,6 @@ poly_A_puller<- function(bam_file, gff, name, peak){
                 }
                
         }
-        # Stop the function erroring out if there are no pol-A reads
- 
         
         # The poly_A flag values 
         all_poly_a_tails_plus <- numeric()

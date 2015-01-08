@@ -4,7 +4,7 @@
 ### a survival curve of poly A tail distribution over the samples (up to six at a time) based on peaks called in the gff file
 
 
-survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE){
+survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekeeping_gene=FALSE,peak =FALSE, normalisation_factor = FALSE){
         library(Rsamtools)
         
         # Creates a .txt file named after the searched gene name 
@@ -26,6 +26,24 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
         # Samples of files from which to obtain plotting range
         l1 <- processed_bam_files[[1]]
         l2 <- processed_bam_files[[2]]
+        
+        number_of_reads1 <- length(l1)
+        number_of_reads2 <- length(l2)
+        
+        if (housekeeping_gene != FALSE){
+                norm_factor <-number_of_reads1/number_of_reads2 
+                cat ('normalisation factor(condition 2/ condition 1) =', norm_factor)
+        }
+        
+        norm_reads_1 <-numeric()
+        norm_reads_2 <-numeric()
+        if (normalisation_factor != FALSE){
+                number_of_reads2 <- number_of_reads2* normalisation_factor
+                norm_reads_1 <- toString(c('normalised reads', paste(bam_list[[1]]),number_of_reads1))
+                norm_reads_2 <- toString(c('normalised reads', paste(bam_list[[2]]),number_of_reads2))
+                cat(norm_reads_1,'\n')
+                cat(norm_reads_2)
+        }
         
         #vodka_test <- ks.test(l1,l2, alternative="two.sided")
         #print (vodka_test)
@@ -60,8 +78,12 @@ survival_curve_generator_by_name <- function(bam_list, gff, name=FALSE, housekee
         mapply (peak_plot, the_rest, collist, MoreArgs= list(r=r))
         
         # Plot legend 
-        legend("topright", legend = paste(bam_list), fill = c("red","blue","green","orange", "yellow","purple"),text.width=40)
-        
+        if (normalisation_factor!= FALSE){
+                legend("topright", legend = c(paste(norm_reads_1),paste(norm_reads_2)), fill = c("red","blue","green","orange", "yellow","purple"),text.width=120)
+        }
+        else{
+                legend("topright", legend = paste(bam_list), fill = c("red","blue","green","orange", "yellow","purple"),text.width=55)
+        }
         
 }
 # Gets the poly A tails from a bam file and returns them as a list

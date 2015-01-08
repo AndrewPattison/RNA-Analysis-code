@@ -225,6 +225,6 @@ peak_switching<- function(peak_list,bam_list, gff, number_of_replicates = 3, num
         
         
         axis(1,hadj= 0.85,cex.axis=0.2,las=3, at=c(1.5,4.5,7.5,10.5), labels = length_frame[,1] )
-        arrows(x0 = points, y0 = avgs, x1= points, y1 = avgs + as.numeric(sdevs[,2]), length=0.05, angle=90, code=3 )
+        arrows(x0 = points, y0 = avgs, x1= points, y1 = avgs + as.numeric(sdevs[,2]), length=0.05, angle=90, code=2)
         
 }
