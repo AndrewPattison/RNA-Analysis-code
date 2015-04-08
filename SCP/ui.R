@@ -1,6 +1,6 @@
 #UI
 create_bam_list <- function(){
-  result_list <- list('delta-ccr4-rep1.bam', 'delta-ccr4-rep2.bam', 'delta-pan2-rep1.bam', 'delta-pan2-rep2.bam', 'delta-pop2-rep1.bam', 'delta-pop2-rep2.bam', 'delta-puf3-rep1.bam', 'delta-puf3-rep2.bam')
+  result_list <- list('WT-t0-rep1.bam','WT-t0-rep2.bam','WT-t5-rep1.bam', 'WT-t5-rep2.bam', 'WT-t10-rep1.bam', 'WT-t10-rep2.bam', 'WT-t20-rep1.bam', 'WT-t20-rep2.bam',  'RNA1-1-t0-rep1.bam', 'RNA1-1-t0-rep2.bam','RNA1-1-t5-rep1.bam', 'RNA1-1-t5-rep2.bam', 'RNA1-1-t10-rep1.bam', 'RNA1-1-t10-rep2.bam','RNA1-1-t20-rep1.bam', 'RNA1-1-t20-rep2.bam')
   return(result_list)
 }
 
@@ -12,7 +12,7 @@ create_gff_list <- function(){
 
 
 shinyUI(fluidPage(
-  titlePanel("Survival Curve Plotter"),
+  titlePanel("Poly(A) Plotter"),
   em(helpText("created by Andrew Pattison, Jack Xu and Paul Harrison for the Beilharz Lab", align = "right")),
   helpText("
            This app analyses the pencentage population against poly-A tail length in a 
@@ -33,8 +33,7 @@ shinyUI(fluidPage(
                 value = "enter gene/peak name"),
       numericInput("n_replicates", label = h4("combine by groups of"),
                    value = 2),
-      checkboxInput("merge", label = "merge replicates", value = T),
-      checkboxInput("mean", label = "display mean", value = T),
+      checkboxInput("merge", label = "merge groups", value = T),
       checkboxInput("legend", label = "display legend", value = T), br(),
       submitButton("Submit"),
       

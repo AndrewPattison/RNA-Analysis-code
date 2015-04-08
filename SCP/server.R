@@ -13,13 +13,15 @@ shinyServer(
           name_list = input$gene_name, number_of_replicates = input$n_replicates, 
           combine = input$merge, plot_mean = input$mean, plot_legend = input$legend)  
     })
-    output$text2 <- renderPrint({
-      number_of_reads()
+    output$text2 <- renderText({
+      Poor_coding_ability (bam_select = input$bam_select, gff = input$gff_select, 
+                              name_list = input$gene_name, number_of_replicates = input$n_replicates, 
+                              combine = input$merge, plot_mean = input$mean, plot_legend = input$legend) 
       
     })
-    output$text3 <- renderText({
+    output$text3 <- renderPrint({
       if(substr(input$gene_name,1,4) != "peak"){
-        c("The gene contains the peak/s:", peak_finder(gff_file = input$gff_select, name_list = input$gene_name))
+        cat("The gene contains the peak/s:", peak_finder(gff_file = input$gff_select, name_list = input$gene_name))
       }
       else{
         NULL

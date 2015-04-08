@@ -15,8 +15,11 @@ create_bam_list <- function(bam_select){
 make_plot_list <- function(processed_bam_files, number_of_replicates){
   conditions_list <- tapply(processed_bam_files, (seq_along(processed_bam_files)-1) %/% number_of_replicates, list)
   new_list <- list()
+  
   for (reps in conditions_list){
     new_list <- c (new_list, list(unlist(reps, recursive = F)))
+    
+
   }
   new_list <- lapply(new_list, sort)
   return(new_list)
@@ -25,14 +28,9 @@ make_plot_list <- function(processed_bam_files, number_of_replicates){
 
 plot_curves <- function(new_list, colour_list, name){
   # Make a reverse cumulative distribuition plot of the poly A reads
+ 
   elis <- lapply (new_list, ecdf)
-  
-  for (count in new_list){
-    toprint <- paste('The number of poly-A reads in', name, 'are', length (count))
-    global_counts <<- c(global_counts, toprint)
     
-  }
-  print(global_counts)
   ry <- lapply(new_list,max)
   max <- (max(unlist(ry)))
   r <- range(0,150)
@@ -84,7 +82,7 @@ set_colour <- function(bam_list, number_of_replicates, new_list){
 
 SCP <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_replicates = 3, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE, plot_mean = TRUE, plot_legend = TRUE){
   library(Rsamtools)
-  global_counts <<- list()
+
   if(name_list == "enter gene/peak name"){
     return(NULL)
   }
@@ -103,8 +101,6 @@ SCP <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_re
   
   colour_list <- set_colour(bam_list, number_of_replicates, new_list)
   gff_file <- read.delim(gff, header=FALSE, comment.char="")
-  #Prints out the order files were processed (the order of the input list)
-  print (c('Order of bam file processing', bam_list))
   legend_list <- bam_list[seq(1, length(bam_list), number_of_replicates)]
   total_legend_list <- (legend_list)      
   
@@ -116,16 +112,12 @@ SCP <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_re
     plot_list <- make_plot_list(processed_bam_files, number_of_replicates)
     total_plot_list <- c(total_plot_list, plot_list)
   }
-  print(str(total_legend_list))
-  print(str(total_plot_list))
   
   # Pull the poly A reads from each bam file, calls poly_A_puller
   
   
   plot_curves(total_plot_list, colour_list, name)            
   plot_mean_legend(total_legend_list, colour_list,plot_legend, new_list)
-  
-  
   
 }
 
@@ -165,13 +157,16 @@ minus_pull <- function(minus_reads, bam_file){
       if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
         peak[,4] <-  last_line[,5]       
       }
-      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(peak [,'chr'],IRanges(
+      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'),flag=scanBamFlag(isMinusStrand=TRUE) , which=GRanges(peak [,'chr'],IRanges(
         peak[,'peak start'], peak[,'peak end'] +5 )))
       result1 <- scanBam (bam_file , param = param, isMinusStrand = TRUE)
       # The list of poly-A tails from the bam file
+      
+     
       no_of_as1 <- result1[[1]][[5]][[1]]
       reads_in_peak_neg <- length (no_of_as1)
       list_of_peaks <-  c(list_of_peaks, length(no_of_as1))
+      
       # Reset last line to current peak
       # Add succesive peaks together
       all_poly_a_tails_minus <-c(all_poly_a_tails_minus,no_of_as1)
@@ -195,12 +190,16 @@ plus_pull <- function(plus_reads, bam_file){
       if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
         peak[,4] <-  last_line[,5]       
       } 
-      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'), which=GRanges(peak [,'chr'],IRanges(
+      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'),flag=scanBamFlag(isMinusStrand=FALSE), which=GRanges(peak [,'chr'],IRanges(
         peak[,'peak start'] -305, peak[,'peak end']+305 )))
       result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
+      print(result2[[1]]$strand)
       # Calculates the length of the cigar and adds this to the pos of the positive bam reads to give us the 3' end
+      
       result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
       result2 <- result2[[1]]
+      
+      
       if (length(result2[[5]][[1]])!= 0){
         df <- cbind(unlist(result2[[3]]), unlist(result2[[5]][[1]]))
         # Second set of precessig to account for 5'read ends at the ead of a peak
@@ -287,3 +286,58 @@ peak_finder <- function(gff_file, name_list){
   
   return(final_print)
 }
+
+Poor_coding_ability <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_replicates = 3, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE, plot_mean = TRUE, plot_legend = TRUE){
+  library(Rsamtools)
+  
+
+  bam_list <- create_bam_list(bam_select)
+  if(length(bam_list) %% number_of_replicates != 0){
+    print("Bam files does not match number of replicates, the program will continue, however please check if the data is correct.")
+  }
+  if(combine == FALSE){
+    number_of_replicates = 1
+  }
+  if(two_curve == TRUE){
+    number_of_replicates = length(bam_list)/2
+  }
+  
+  new_list <- strsplit(name_list, '[ ]')
+  
+  colour_list <- set_colour(bam_list, number_of_replicates, new_list)
+  gff_file <- read.delim(gff, header=FALSE, comment.char="")
+  legend_list <- bam_list[seq(1, length(bam_list), number_of_replicates)]
+  total_legend_list <- (legend_list)      
+  
+  total_plot_list <- list()
+  for (name in new_list[[1]]){
+    splitgeneofinterest <- split_geneofinterest (gff_file, name)
+    
+    processed_bam_files <- lapply(bam_list, poly_A_puller, gff_file, name, splitgeneofinterest)
+    plot_list <- make_plot_list(processed_bam_files, number_of_replicates)
+    total_plot_list <- c(total_plot_list, plot_list)
+  }
+
+  # Pull the poly A reads from each bam file, calls poly_A_puller
+    
+  #plot_curves(total_plot_list, colour_list, name)            
+  
+  return(plot_mean_legend2(total_legend_list, colour_list,plot_legend, new_list, total_plot_list))
+}
+
+plot_mean_legend2 <- function(total_legend_list, colour_list, plot_legend, new_list, total_plot_list){
+  
+  new_length_list <- lapply (total_plot_list,length)
+  new_legend_list <- list()
+  
+  for (name in new_list[[1]]){
+    named_list <- lapply(total_legend_list, paste, name)
+    new_legend_list <- c(new_legend_list, named_list)
+  }  
+
+  clist<- mapply (paste ,'The read count for ', unlist(new_legend_list, recursive = F),' is ', unlist(new_length_list, recursive = F),'.', MoreArgs = list(sep=""))
+  
+  return(clist)
+}
+
+
