@@ -1,6 +1,6 @@
 #UI
 create_bam_list <- function(){
-  result_list <- list('WT-t0-rep1.bam','WT-t0-rep2.bam','WT-t5-rep1.bam', 'WT-t5-rep2.bam', 'WT-t10-rep1.bam', 'WT-t10-rep2.bam', 'WT-t20-rep1.bam', 'WT-t20-rep2.bam',  'RNA1-1-t0-rep1.bam', 'RNA1-1-t0-rep2.bam','RNA1-1-t5-rep1.bam', 'RNA1-1-t5-rep2.bam', 'RNA1-1-t10-rep1.bam', 'RNA1-1-t10-rep2.bam','RNA1-1-t20-rep1.bam', 'RNA1-1-t20-rep2.bam')
+  result_list <- list.files(getwd(), pattern = "\\.bam$")
   return(result_list)
 }
 
@@ -8,7 +8,7 @@ create_gff_list <- function(){
   gff_files <- list.files(getwd(), pattern = "\\.gff$")
   
   return(gff_files)
-}
+} 
 
 
 shinyUI(fluidPage(
@@ -36,6 +36,14 @@ shinyUI(fluidPage(
       checkboxInput("merge", label = "merge groups", value = T),
       checkboxInput("legend", label = "display legend", value = T), br(),
       submitButton("Submit"),
+      sliderInput("xslider", label= 'x axis slider', min=0, max=400,value =150, step = 25,ticks = TRUE, 
+                 sep = ","),
+      sliderInput("ad_slider", label= 'number of adapter bases', min=0, max=23,
+                  value =0, step = 1,ticks = TRUE, 
+                  sep = ","),
+      sliderInput("al_length", label= 'alignment length range', min=0, max=300,
+                  value =c(0,300)),
+      
       
       h3("save"),
       #textInput("save_name", label = h4("save name"), 

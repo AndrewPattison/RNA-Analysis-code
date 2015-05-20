@@ -1,4 +1,4 @@
-
+ 
 ### containing the SCP program
 
 #------------------------------------------------------------------------------
@@ -24,16 +24,16 @@ make_plot_list <- function(processed_bam_files, number_of_replicates){
   new_list <- lapply(new_list, sort)
   return(new_list)
 }
+ 
 
-
-plot_curves <- function(new_list, colour_list, name){
+plot_curves <- function(new_list, colour_list, name, xlab){
   # Make a reverse cumulative distribuition plot of the poly A reads
  
   elis <- lapply (new_list, ecdf)
     
   ry <- lapply(new_list,max)
-  max <- (max(unlist(ry)))
-  r <- range(0,150)
+  max <- max(unlist(ry))
+  r <- range(0,xlab)
   
   # Make graph have no box
   par(bty="l")
@@ -41,13 +41,13 @@ plot_curves <- function(new_list, colour_list, name){
   
   # Statement to determine title of plot, plots first curve. 
   # Plots all the remaining curves
-  curve((1-elis[[1]](x))*100, from=r[1], to=r[2], col="white" , xlim=r, ylab= '', xlab = '', main= paste(name),axes=FALSE)   
+  curve((1-elis[[1]](x))*100, from=r[1], to=xlab, col="white" , xlim=r, ylab= '', xlab = '', main= paste(name),axes=FALSE)   
   # Add a few more axis options
-  axis(1, pos=0, at= seq(0, round(max+25,digits=-1),50), tick = 25)
+  axis(1, pos=0, at= seq(0, round(xlab,digits=-1),25), tick = 25)
   axis(2, pos=0, at= c(0,25,50,75,100), tick = 25)
   # Plots all the remaining curves
   peak_plot <- function(elis, colour_list,r=r ){
-    curve((1-elis(x))*100,  from=r[1], to=r[2], col=colour_list, xlim=r, ylab= '', xlab = '', add=TRUE)   
+    curve((1-elis(x))*100,  from=r[1], to=xlab, col=colour_list, xlim=r, ylab= '', xlab = '', add=TRUE)   
   }
   # Calls the peak plot function with colour parameters
   mapply (peak_plot, elis, colour_list, MoreArgs= list(r=r))
@@ -80,12 +80,14 @@ set_colour <- function(bam_list, number_of_replicates, new_list){
 }
 
 
-SCP <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_replicates = 3, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE, plot_mean = TRUE, plot_legend = TRUE){
+SCP <- function(albases, adbases=0, xlab ,bam_select, gff, name_list, unequal_groups = FALSE, number_of_replicates = 3, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE, plot_mean = TRUE, plot_legend = TRUE){
   library(Rsamtools)
-
+  xlabel <- xlab
+   
   if(name_list == "enter gene/peak name"){
     return(NULL)
   }
+  adlength <- adbases
   bam_list <- create_bam_list(bam_select)
   if(length(bam_list) %% number_of_replicates != 0){
     print("Bam files does not match number of replicates, the program will continue, however please check if the data is correct.")
@@ -108,7 +110,7 @@ SCP <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_re
   for (name in new_list[[1]]){
     splitgeneofinterest <- split_geneofinterest (gff_file, name)
     
-    processed_bam_files <- lapply(bam_list, poly_A_puller, gff_file, name, splitgeneofinterest)
+    processed_bam_files <- lapply(bam_list, poly_A_puller, gff_file, name, splitgeneofinterest,adlength, albases)
     plot_list <- make_plot_list(processed_bam_files, number_of_replicates)
     total_plot_list <- c(total_plot_list, plot_list)
   }
@@ -116,7 +118,7 @@ SCP <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_re
   # Pull the poly A reads from each bam file, calls poly_A_puller
   
   
-  plot_curves(total_plot_list, colour_list, name)            
+  plot_curves(total_plot_list, colour_list, name, xlab=xlabel)            
   plot_mean_legend(total_legend_list, colour_list,plot_legend, new_list)
   
 }
@@ -146,7 +148,8 @@ gff_gene_finder <- function(gff, name){
 }
 
 
-minus_pull <- function(minus_reads, bam_file){
+minus_pull <- function(minus_reads, bam_file, adbases, albases){
+  
   list_of_peaks <- list()
   all_poly_a_tails_minus <- numeric()
   last_line <- data.frame(matrix(1, nrow=1,ncol=10))
@@ -157,13 +160,21 @@ minus_pull <- function(minus_reads, bam_file){
       if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
         peak[,4] <-  last_line[,5]       
       }
-      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'),flag=scanBamFlag(isMinusStrand=TRUE) , which=GRanges(peak [,'chr'],IRanges(
+      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN','AD'),flag=scanBamFlag(isMinusStrand=TRUE) , which=GRanges(peak [,'chr'],IRanges(
         peak[,'peak start'], peak[,'peak end'] +5 )))
       result1 <- scanBam (bam_file , param = param, isMinusStrand = TRUE)
       # The list of poly-A tails from the bam file
-      
-     
+          
       no_of_as1 <- result1[[1]][[5]][[1]]
+      adapter_bases1 <- result1[[1]][[5]][[2]]
+      qwidth <- result1[[1]][[4]]
+      flag_frame1<- data.frame(adapter_bases1,no_of_as1,qwidth)
+      
+      flag_frame1 <- flag_frame1[complete.cases(flag_frame1),]
+      flag_frame1 <- flag_frame1[flag_frame1$adapter_bases1>=adbases,]
+      flag_frame1 <- flag_frame1[flag_frame1$qwidth>=albases[1]& flag_frame1$qwidth<=albases[2],]
+   
+      no_of_as1 <- flag_frame1$no_of_as1
       reads_in_peak_neg <- length (no_of_as1)
       list_of_peaks <-  c(list_of_peaks, length(no_of_as1))
       
@@ -177,7 +188,8 @@ minus_pull <- function(minus_reads, bam_file){
 }
 
 
-plus_pull <- function(plus_reads, bam_file){
+plus_pull <- function(plus_reads, bam_file, adbases, albases){
+  
   list_of_peaks <- list()
   all_poly_a_tails_plus <- numeric()
   # Give last line a default value 
@@ -190,20 +202,29 @@ plus_pull <- function(plus_reads, bam_file){
       if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
         peak[,4] <-  last_line[,5]       
       } 
-      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN'),flag=scanBamFlag(isMinusStrand=FALSE), which=GRanges(peak [,'chr'],IRanges(
+      param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN','AD'),flag=scanBamFlag(isMinusStrand=FALSE), which=GRanges(peak [,'chr'],IRanges(
         peak[,'peak start'] -305, peak[,'peak end']+305 )))
       result2 <- scanBam(bam_file , param=param, isMinusStrand = FALSE)
-      print(result2[[1]]$strand)
+      
       # Calculates the length of the cigar and adds this to the pos of the positive bam reads to give us the 3' end
       
       result2[[1]][[3]]<-result2[[1]][[3]]+result2[[1]][[4]]-1
       result2 <- result2[[1]]
-      
+      #Make a data frame of the adapter bases and the poly-A bases. 
       
       if (length(result2[[5]][[1]])!= 0){
-        df <- cbind(unlist(result2[[3]]), unlist(result2[[5]][[1]]))
+        df <- data.frame(unlist(result2[[3]]), unlist(result2[[5]][[1]]), unlist(result2[[5]][[2]]),result2[4])
+        colnames(df) <- c('pos', 'poly_A_bases', 'adapter_bases','adlength')
+        print(str(df))
         # Second set of precessig to account for 5'read ends at the ead of a peak
         if (nrow(df)>0){
+          df<-data.frame(df)
+          
+          df <- df[complete.cases(df),]
+          df <- df[df$adlength>=albases[1] & df$adlength<=albases[2],]
+          
+          
+          
           my.data.frame <-  subset(df, df[,1] >= (peak[,'peak start'] -5) & df[,1] <= (peak[,'peak end']+5))
           no_of_as2 <- my.data.frame[,2]
           list_of_peaks <-  c(list_of_peaks, length(no_of_as2))
@@ -231,16 +252,16 @@ split_geneofinterest <- function(gff, name){
 }
 
 
-poly_A_puller <- function(bam_file, gff, name, split_gene){
-  ### Pulls all reads identifying with a gene/peak of interst 
+poly_A_puller <- function(bam_file, gff, name, split_gene, adbases, albases){
+   ### Pulls all reads identifying with a gene/peak of interst 
   split_goi <- split_gene
   # Pull the poly A reads for strands in each oreintation from the gff file
   plus_reads <- split_goi[['+']]
   minus_reads <- split_goi[['-']]
   list_of_peaks <- list()
   # For plus and minus reads, assign reads to peaks
-  all_poly_a_tails_minus <- minus_pull(minus_reads, bam_file)
-  all_poly_a_tails_plus <- plus_pull(plus_reads, bam_file)
+  all_poly_a_tails_minus <- minus_pull(minus_reads, bam_file, adbases, albases)
+  all_poly_a_tails_plus <- plus_pull(plus_reads, bam_file, adbases, albases)
   # Combine the pulled reads back together
   all_poly_a_tails <- sort(c(all_poly_a_tails_plus, all_poly_a_tails_minus))
   return(all_poly_a_tails)
@@ -287,7 +308,7 @@ peak_finder <- function(gff_file, name_list){
   return(final_print)
 }
 
-Poor_coding_ability <- function(bam_select, gff, name_list, unequal_groups = FALSE, number_of_replicates = 3, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE, plot_mean = TRUE, plot_legend = TRUE){
+Poor_coding_ability <- function(albases, adbases, bam_select, gff, name_list, unequal_groups = FALSE, number_of_replicates = 3, combine = TRUE, two_curve = FALSE, save = FALSE, select = FALSE, plot_mean = TRUE, plot_legend = TRUE){
   library(Rsamtools)
   
 
@@ -313,7 +334,7 @@ Poor_coding_ability <- function(bam_select, gff, name_list, unequal_groups = FAL
   for (name in new_list[[1]]){
     splitgeneofinterest <- split_geneofinterest (gff_file, name)
     
-    processed_bam_files <- lapply(bam_list, poly_A_puller, gff_file, name, splitgeneofinterest)
+    processed_bam_files <- lapply(bam_list, poly_A_puller, gff_file, name, splitgeneofinterest, adbases, albases)
     plot_list <- make_plot_list(processed_bam_files, number_of_replicates)
     total_plot_list <- c(total_plot_list, plot_list)
   }
