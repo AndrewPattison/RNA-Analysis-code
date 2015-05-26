@@ -155,25 +155,30 @@ minus_pull <- function(minus_reads, bam_file, adbases, albases){
   last_line <- data.frame(matrix(1, nrow=1,ncol=10))
   if (length(minus_reads) >= 1){
     for (line in 1:nrow(minus_reads)){
+      
       peak <- minus_reads [line,]
+      
       # If the start of a line is less than the end of a previous peak, move the start of the peak to the end of the previous peak. 
       if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
-        peak[,4] <-  last_line[,5]       
+        peak[,4] <-  last_line[,5]+1      
       }
+      
       param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN','AD'),flag=scanBamFlag(isMinusStrand=TRUE) , which=GRanges(peak [,'chr'],IRanges(
-        peak[,'peak start'], peak[,'peak end'] +5 )))
+        peak[,'peak start'], peak[,'peak end'] )))
       result1 <- scanBam (bam_file , param = param, isMinusStrand = TRUE)
       # The list of poly-A tails from the bam file
-          
+      
       no_of_as1 <- result1[[1]][[5]][[1]]
       adapter_bases1 <- result1[[1]][[5]][[2]]
       qwidth <- result1[[1]][[4]]
-      flag_frame1<- data.frame(adapter_bases1,no_of_as1,qwidth)
+      pos <- result1[[1]][[3]]
+      flag_frame1<- data.frame(adapter_bases1,no_of_as1,qwidth,pos)
       
       flag_frame1 <- flag_frame1[complete.cases(flag_frame1),]
       flag_frame1 <- flag_frame1[flag_frame1$adapter_bases1>=adbases,]
       flag_frame1 <- flag_frame1[flag_frame1$qwidth>=albases[1]& flag_frame1$qwidth<=albases[2],]
-   
+      # This step makes sure pos is within my cut down gff peak region in the case of multiple peaks. 
+      flag_frame1 <- flag_frame1[flag_frame1$pos>=peak[,4]& flag_frame1$pos<=peak[,5],]
       no_of_as1 <- flag_frame1$no_of_as1
       reads_in_peak_neg <- length (no_of_as1)
       list_of_peaks <-  c(list_of_peaks, length(no_of_as1))
@@ -200,7 +205,7 @@ plus_pull <- function(plus_reads, bam_file, adbases, albases){
       peak <- plus_reads [line,]
       # If the start of a line in less than the end of a previous peak, move the start of the peak to the end of the previous peak. 
       if(peak[,4] <= last_line[,5] & peak[,5] >= last_line[,5]){
-        peak[,4] <-  last_line[,5]       
+        peak[,4] <-  last_line[,5]+1       
       } 
       param <- ScanBamParam(what=c('qname','pos','qwidth','strand'),tag=c('AN','AD'),flag=scanBamFlag(isMinusStrand=FALSE), which=GRanges(peak [,'chr'],IRanges(
         peak[,'peak start'] -305, peak[,'peak end']+305 )))
@@ -222,10 +227,8 @@ plus_pull <- function(plus_reads, bam_file, adbases, albases){
           
           df <- df[complete.cases(df),]
           df <- df[df$adlength>=albases[1] & df$adlength<=albases[2],]
-          
-          
-          
-          my.data.frame <-  subset(df, df[,1] >= (peak[,'peak start'] -5) & df[,1] <= (peak[,'peak end']+5))
+          my.data.frame <- <- df[df$pos>=peak[4] & df$pos<=peak[5],]  
+                    
           no_of_as2 <- my.data.frame[,2]
           list_of_peaks <-  c(list_of_peaks, length(no_of_as2))
           # Add succesive peaks together
